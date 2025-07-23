@@ -102,7 +102,7 @@ const parseCSV = (csvText) => {
 const getRandomProductsPerCategory = (products, countPerCategory = 2) => {
     const categorizedProducts = {};
     products.forEach(p => {
-        // Usar la categoría "Ropa" o la categoría del producto si no es ropa
+        // Usar la categoría "Ropa" o la subcategoría si es "Ropa" y tiene subcategoría
         const categoryKey = p.category === 'Ropa' && p.sub_category ? p.sub_category : p.category;
         if (categoryKey) {
             if (!categorizedProducts[categoryKey]) {
@@ -521,7 +521,7 @@ cartItemsContainer.addEventListener('click', (event) => {
 fetchProducts(); // Carga los productos y llama a displayProductsForHomepage()
 updateCartCount(); // Actualizar el contador del carrito al cargar
 
-// Función para mantener la clase 'active-category'
+// Función para mantener la clase 'active-category' (aunque ya está integrada en navButtons listener)
 const setActiveButton = (category) => {
     navButtons.forEach(btn => {
         if (btn.getAttribute('data-category') === category) {
