@@ -1,5 +1,6 @@
 // --- CONFIGURACIÓN ---
-// NO NECESITAMOS GOOGLE_SHEET_ID POR SEPARADO YA QUE USAMOS UN ENLACE CSV DIRECTO
+// URL DIRECTA para obtener la hoja como CSV
+const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyGzk1QIOLgGgVHj2DNi8ofN_oqzQl7qa1_V4zYzW3oK0Q7kDhWw9GD0t_bFmDs5cjmG8YaWwPDCbM/pub?output=csv'; // ¡TU ENLACE DIRECTO!
 // Tu número de WhatsApp completo (ej. 573101234567 para Colombia)
 const WHATSAPP_PHONE_NUMBER = '573184950436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
 // ---------------------
@@ -13,8 +14,12 @@ const cartTotalSpan = document.getElementById('cart-total');
 const cartItemsContainer = document.getElementById('cart-items');
 const emptyCartMessage = cartItemsContainer.querySelector('.empty-cart-message');
 
+// Botones de navegación principal y de subcategorías
+const navButtons = document.querySelectorAll('.nav-button:not(.subcategory-button)'); // Excluye los nuevos botones de subcategoría
+const subcategoryNav = document.getElementById('subcategory-nav'); // El contenedor de las subcategorías
+const subcategoryButtons = document.querySelectorAll('.subcategory-button'); // Los botones de subcategoría
+
 // Botones de navegación y acción
-const navButtons = document.querySelectorAll('.nav-button');
 const backToCatalogButton = document.getElementById('back-to-catalog');
 const backToProductsFromCartButton = document.getElementById('back-to-products-from-cart');
 const addToCartButton = document.getElementById('add-to-cart-button');
@@ -59,8 +64,6 @@ const parseCSV = (csvText) => {
         }
         values.push(currentField.trim()); // Añadir el último campo
 
-        // Depuración: console.log(`Línea ${i + 1}: ${values.length} columnas vs ${headers.length} esperadas ->`, values);
-
         if (values.length !== headers.length) {
             console.warn(`Saltando línea ${i + 1} debido a un número inconsistente de columnas. Esperadas: ${headers.length}, Encontradas: ${values.length}. Contenido: "${line}"`);
             continue;
@@ -70,7 +73,7 @@ const parseCSV = (csvText) => {
         headers.forEach((header, index) => {
             let value = values[index];
             if (header === 'price' && value) {
-                value = parseFloat(value.replace(/[^0-9.]/g, '')); // Limpiar y convertir a número flotante
+                value = parseFloat(value.replace(/[^[^0-9.]/g, '')); // Limpiar y convertir a número flotante
                 if (isNaN(value)) value = 0; // Asegurar que sea un número válido
             } else if (header === 'stock' && value) {
                 value = parseInt(value, 10);
@@ -79,6 +82,8 @@ const parseCSV = (csvText) => {
                 value = value.split(',').map(s => s.trim()).filter(s => s);
             } else if (header === 'colors' && value) {
                 value = value.split(',').map(c => c.trim()).filter(c => c);
+            } else if (header === 'sub_category' && value) { // Asegurarse de que sub_category sea un string limpio
+                value = value.toLowerCase().trim();
             }
             product[header] = value;
         });
@@ -97,8 +102,6 @@ const parseCSV = (csvText) => {
 // Función para obtener productos de Google Sheet
 const fetchProducts = async () => {
     productListSection.innerHTML = '<p class="loading-message">Cargando productos...</p>'; // Mostrar mensaje de carga
-    // URL DIRECTA para obtener la hoja como CSV
-    const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyGzk1QIOLgGgVHj2DNi8ofN_oqzQl7qa1_V4zYzW3oK0Q7kDhWw9GD0t_bFmDs5cjmG8YaWwPDCbM/pub?output=csv'; // ¡NUEVO ENLACE DIRECTO!
 
     try {
         const response = await fetch(sheetURL);
@@ -114,7 +117,7 @@ const fetchProducts = async () => {
     }
 };
 
-// Función para mostrar productos en el DOM
+// Función para mostrar productos en el DOM con filtrado de subcategoría
 const displayProducts = (productsToDisplay) => {
     productListSection.innerHTML = ''; // Limpiar productos existentes
     if (productsToDisplay.length === 0) {
@@ -332,24 +335,60 @@ const generateWhatsAppMessage = (type) => {
 
 // --- Event Listeners ---
 
-// Navegación por categorías
+// Navegación por categorías principales
 navButtons.forEach(button => {
     button.addEventListener('click', () => {
         const category = button.getAttribute('data-category');
+
+        // Ocultar todas las secciones
+        productListSection.classList.add('hidden');
+        productDetailSection.classList.add('hidden');
+        cartSection.classList.add('hidden');
+        subcategoryNav.classList.add('hidden'); // Ocultar subcategorías por defecto
+
         if (category === 'Carrito') {
             renderCart();
-            productListSection.classList.add('hidden');
-            productDetailSection.classList.add('hidden');
             cartSection.classList.remove('hidden');
+        } else if (category === 'Ropa') {
+            // Mostrar los botones de subcategoría de ropa
+            subcategoryNav.classList.remove('hidden');
+            // Mostrar todos los productos de ropa inicialmente
+            const filteredProducts = allProducts.filter(p => p.category === category);
+            displayProducts(filteredProducts);
+            productListSection.classList.remove('hidden');
         } else {
+            // Para otras categorías, ocultar subcategorías y mostrar productos
             const filteredProducts = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
             displayProducts(filteredProducts);
             productListSection.classList.remove('hidden');
-            productDetailSection.classList.add('hidden');
-            cartSection.classList.add('hidden');
         }
     });
 });
+
+// Navegación por subcategorías (específicas para Ropa)
+subcategoryButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const mainCategory = button.getAttribute('data-category'); // Debería ser 'Ropa'
+        const subcategory = button.getAttribute('data-subcategory');
+
+        let filteredProducts = [];
+        if (subcategory === 'all') {
+            // Si es 'Todas las Ropa', filtra solo por la categoría principal
+            filteredProducts = allProducts.filter(p => p.category === mainCategory);
+        } else {
+            // Filtra por categoría principal Y subcategoría
+            filteredProducts = allProducts.filter(p => 
+                p.category === mainCategory && 
+                p.sub_category === subcategory
+            );
+        }
+        displayProducts(filteredProducts);
+        productListSection.classList.remove('hidden');
+        productDetailSection.classList.add('hidden');
+        cartSection.classList.add('hidden');
+    });
+});
+
 
 // Delegación de eventos para botones "Ver Detalles"
 productListSection.addEventListener('click', (event) => {
@@ -362,11 +401,28 @@ productListSection.addEventListener('click', (event) => {
 backToCatalogButton.addEventListener('click', () => {
     productDetailSection.classList.add('hidden');
     productListSection.classList.remove('hidden');
+    // Si volvemos desde un detalle, y la categoría "Ropa" estaba activa, mostrar sus subcategorías
+    // Podríamos guardar la última categoría seleccionada para esto, pero por ahora solo se mostrarán
+    // las subcategorías si se vuelve de un detalle y la categoría activa es 'Ropa'
+    // Se puede mejorar este manejo de estado
+    const currentCategoryButton = document.querySelector('.nav-button.active-category'); // Si tuvieras una clase 'active-category'
+    if (currentCategoryButton && currentCategoryButton.getAttribute('data-category') === 'Ropa') {
+        subcategoryNav.classList.remove('hidden');
+    } else {
+        subcategoryNav.classList.add('hidden');
+    }
 });
 
 backToProductsFromCartButton.addEventListener('click', () => {
     cartSection.classList.add('hidden');
     productListSection.classList.remove('hidden');
+    // Lógica similar para subcategorías al volver del carrito
+    const currentCategoryButton = document.querySelector('.nav-button.active-category');
+    if (currentCategoryButton && currentCategoryButton.getAttribute('data-category') === 'Ropa') {
+        subcategoryNav.classList.remove('hidden');
+    } else {
+        subcategoryNav.classList.add('hidden');
+    }
 });
 
 addToCartButton.addEventListener('click', addToCart);
