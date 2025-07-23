@@ -1,442 +1,407 @@
 // --- CONFIGURACIÓN ---
-const GOOGLE_SHEET_ID = '1bh8zFAQxE7B7mLhmzkGblp3udws4u2xW76_4U32zCGk'; // CORRECTO: ¡SOLO EL ID! // ID de tu Google Sheet
-const WHATSAPP_PHONE_NUMBER = '573184920436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO, ej. 573101234567 para Colombia!
+// ID de tu Google Sheet (Asegúrate de que solo sea el ID alfanumérico)
+const GOOGLE_SHEET_ID = '1bh8zFAQxE7B7mLhmzkGblp3udws4u2xW76_4U32zCGk';
+// Tu número de WhatsApp completo (ej. 573101234567 para Colombia)
+const WHATSAPP_PHONE_NUMBER = '573184920436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
+// ---------------------
 
-// --- SELECTORES DE ELEMENTOS HTML ---
+// Referencias a elementos del DOM
 const productListSection = document.getElementById('product-list');
 const productDetailSection = document.getElementById('product-detail');
 const cartSection = document.getElementById('cart-section');
+const cartCountSpan = document.getElementById('cart-count');
+const cartTotalSpan = document.getElementById('cart-total');
+const cartItemsContainer = document.getElementById('cart-items');
+const emptyCartMessage = cartItemsContainer.querySelector('.empty-cart-message');
 
+// Botones de navegación y acción
+const navButtons = document.querySelectorAll('.nav-button');
 const backToCatalogButton = document.getElementById('back-to-catalog');
 const backToProductsFromCartButton = document.getElementById('back-to-products-from-cart');
-const navButtons = document.querySelectorAll('.nav-button');
-const cartCountSpan = document.getElementById('cart-count');
-
-// Elementos del detalle de producto
-const detailImage = document.getElementById('detail-image');
-const detailName = document.getElementById('detail-name');
-const detailId = document.getElementById('detail-id');
-const detailDescription = document.getElementById('detail-description');
-const detailPrice = document.getElementById('detail-price');
-const detailOptions = document.getElementById('detail-options');
 const addToCartButton = document.getElementById('add-to-cart-button');
 const buyNowButton = document.getElementById('buy-now-button');
-const consultantButton = document.getElementById('consultant-button');
-
-// Elementos del carrito
-const cartItemsContainer = document.getElementById('cart-items');
-const cartTotalSpan = document.getElementById('cart-total');
 const checkoutButton = document.getElementById('checkout-button');
+const consultantButton = document.getElementById('consultant-button');
 const consultantCartButton = document.getElementById('consultant-cart-button');
 
-// --- VARIABLES GLOBALES ---
 let allProducts = []; // Para almacenar todos los productos
-let cart = JSON.parse(localStorage.getItem('urbanlife_cart')) || []; // Cargar carrito de localStorage
-let selectedProduct = null; // Para el producto que se está viendo en detalle
+let currentProduct = null; // Para el producto que se está viendo en detalle
+let cart = {}; // Almacena los productos en el carrito { product_id: { product_data, quantity, selected_size, selected_color } }
 
-// --- FUNCIONES DE UTILIDAD ---
+// --- Funciones de Utilidad ---
 
-// Formatea un número como moneda (ej. 120000 -> $120.000)
-const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 0
-    }).format(price).replace('COP', '').trim(); // Elimina "COP" y el espacio extra
-};
-
-// Muestra u oculta secciones
-const showSection = (sectionToShow) => {
-    [productListSection, productDetailSection, cartSection].forEach(section => {
-        section.classList.add('hidden');
-    });
-    sectionToShow.classList.remove('hidden');
-};
-
-// Genera el enlace de WhatsApp
-const generateWhatsAppLink = (message) => {
-    const encodedMessage = encodeURIComponent(message);
-    return `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodedMessage}`;
-};
-
-// --- GESTIÓN DE DATOS (Google Sheets) ---
-
-const fetchProducts = async () => {
-    productListSection.innerHTML = '<p class="loading-message">Cargando productos...</p>'; // Mostrar mensaje de carga
-    // URL para obtener la hoja como CSV (hoja 1, ID 0)
-    const sheetURL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&gid=0`;
-    try {
-        const response = await fetch(sheetURL);
-        const csvText = await response.text();
-
-        // Parsea el CSV
-        allProducts = parseCSV(csvText);
-        displayProducts(allProducts);
-        updateCartCount(); // Asegura que el contador del carrito se actualice al cargar
-        if (allProducts.length === 0) {
-             productListSection.innerHTML = '<p class="loading-message">No se encontraron productos en la hoja de cálculo.</p>';
-        }
-    } catch (error) {
-        console.error('Error al cargar productos:', error);
-        productListSection.innerHTML = '<p class="loading-message">Error al cargar los productos. Asegúrate de que la hoja de cálculo esté publicada y el ID sea correcto.</p>';
-    }
-};
-
-// Función para parsear CSV robusta
-const parseCSV = (csv) => {
-    const lines = csv.split('\n').filter(line => line.trim() !== ''); // Filtrar líneas vacías
-    if (lines.length < 2) return []; // No hay suficientes datos (solo encabezados o nada)
-
-    // Limpiar comillas y espacios de los encabezados, y eliminar BOM si existe
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').replace(/^\ufeff/, ''));
+// Función para limpiar y parsear el CSV
+const parseCSV = (csvText) => {
+    const lines = csvText.split('\n');
+    const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
     const products = [];
 
     for (let i = 1; i < lines.length; i++) {
-        const currentLine = lines[i].trim();
-        // Usar una expresión regular más robusta para manejar comas dentro de comillas
-        const values = currentLine.match(/(?:\"([^\"]*)\"|([^,]*))(?:,|$)/g)
-            .map(v => v.replace(/,$/, '')) // Eliminar coma final
-            .map(v => v.startsWith('"') && v.endsWith('"') ? v.slice(1, -1) : v); // Eliminar comillas si las hay
+        const line = lines[i].trim();
+        if (!line) continue; // Saltar líneas vacías
+
+        // Manejo robusto de comas dentro de campos (ej. en descripciones)
+        const values = [];
+        let inQuote = false;
+        let currentField = '';
+        for (let j = 0; j < line.length; j++) {
+            const char = line[j];
+            if (char === '"' && (j === 0 || line[j - 1] === ',' || line[j - 1] === ' ')) { // Start/end of a quoted field
+                inQuote = !inQuote;
+                if (!inQuote && line[j + 1] === ',') { // End of quoted field followed by comma
+                    values.push(currentField.trim());
+                    currentField = '';
+                    j++; // Skip the comma
+                }
+            } else if (char === ',' && !inQuote) {
+                values.push(currentField.trim());
+                currentField = '';
+            } else {
+                currentField += char;
+            }
+        }
+        values.push(currentField.trim()); // Add the last field
+
+        // console.log(`Línea ${i + 1}: ${values.length} columnas ->`, values); // Depuración
 
         if (values.length !== headers.length) {
-            console.warn(`Saltando línea ${i + 1} debido a un número inconsistente de columnas: ${currentLine}`);
+            console.warn(`Saltando línea ${i + 1} debido a un número inconsistente de columnas: "${line}"`);
             continue;
         }
 
         const product = {};
         headers.forEach((header, index) => {
-            let value = values[index] ? values[index].trim() : '';
-            // Limpiar caracteres no deseados que a veces vienen del CSV (como \r)
-            product[header.replace(/\r/g, '')] = value.replace(/\r/g, '');
+            let value = values[index];
+            if (header === 'price' && value) {
+                value = parseFloat(value.replace(/[^0-9.]/g, '')); // Limpiar y convertir a número flotante
+                if (isNaN(value)) value = 0; // Asegurar que sea un número válido
+            } else if (header === 'stock' && value) {
+                value = parseInt(value, 10);
+                if (isNaN(value)) value = 0;
+            } else if (header === 'sizes' && value) {
+                value = value.split(',').map(s => s.trim()).filter(s => s);
+            } else if (header === 'colors' && value) {
+                value = value.split(',').map(c => c.trim()).filter(c => c);
+            }
+            product[header] = value;
         });
 
-        // Procesar campos específicos
-        product.price = parseFloat(product.price) || 0;
-        // Asegurar que image_url siempre sea un string vacío si es null/undefined
-        product.image_url = product.image_url || 'https://via.placeholder.com/300?text=Imagen+No+Disponible';
-        product.sizes = product.sizes ? product.sizes.split(',').map(s => s.trim()).filter(Boolean) : [];
-        product.colors = product.colors ? product.colors.split(',').map(c => c.trim()).filter(Boolean) : [];
-        product.stock = parseInt(product.stock) || 0; // Convertir stock a número
-
-        products.push(product);
+        // Validación mínima para asegurar que los productos tienen lo básico para ser mostrados
+        if (product.product_id && product.name && product.price !== undefined && product.image_url) {
+            products.push(product);
+        } else {
+            console.warn(`Saltando producto incompleto en línea ${i + 1}:`, product);
+        }
     }
     return products;
 };
 
 
-// --- RENDERIZADO DE PRODUCTOS ---
+// Función para obtener productos de Google Sheet
+const fetchProducts = async () => {
+    productListSection.innerHTML = '<p class="loading-message">Cargando productos...</p>'; // Mostrar mensaje de carga
+    // URL para obtener la hoja como CSV (hoja 1, ID 0)
+    const sheetURL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&gid=0`;
 
+    try {
+        const response = await fetch(sheetURL);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const csvText = await response.text();
+        allProducts = parseCSV(csvText);
+        displayProducts(allProducts); // Mostrar todos los productos inicialmente
+    } catch (error) {
+        console.error('Error al cargar los productos:', error);
+        productListSection.innerHTML = '<p class="error-message">Error al cargar los productos. Por favor, revisa la consola para más detalles o intenta recargar la página.</p>';
+    }
+};
+
+// Función para mostrar productos en el DOM
 const displayProducts = (productsToDisplay) => {
-    productListSection.innerHTML = ''; // Limpia el contenido actual
+    productListSection.innerHTML = ''; // Limpiar productos existentes
     if (productsToDisplay.length === 0) {
-        productListSection.innerHTML = '<p class="loading-message">No hay productos en esta categoría.</p>';
+        productListSection.innerHTML = '<p class="no-products-message">No se encontraron productos en esta categoría.</p>';
         return;
     }
 
     productsToDisplay.forEach(product => {
         const productCard = document.createElement('div');
-        productCard.classList.add('product-card');
-        productCard.dataset.productId = product.product_id;
+        productCard.className = 'product-card';
+        productCard.setAttribute('data-id', product.product_id);
 
         productCard.innerHTML = `
-            <img src="${product.image_url}" alt="${product.name}" onerror="this.onerror=null;this.src='https://via.placeholder.com/300?text=Imagen+No+Disponible';">
+            <img src="${product.image_url}" alt="${product.name}" onerror="this.onerror=null;this.src='https://via.placeholder.com/200?text=Imagen+No+Disponible';"/>
             <h3>${product.name}</h3>
-            <p class="price">$${formatPrice(product.price)}</p>
-            <button class="buy-button view-detail">Ver Detalle</button>
+            <p class="product-price">$${product.price.toLocaleString('es-CO')}</p>
+            <button class="view-detail-button" data-id="${product.product_id}">Ver Detalles</button>
         `;
-
-        productCard.querySelector('.view-detail').addEventListener('click', () => showProductDetail(product.product_id));
         productListSection.appendChild(productCard);
     });
 };
 
+// Función para mostrar detalles de un producto
 const showProductDetail = (productId) => {
-    selectedProduct = allProducts.find(p => p.product_id === productId);
-
-    if (!selectedProduct) {
-        alert('Producto no encontrado.');
+    currentProduct = allProducts.find(p => p.product_id === productId);
+    if (!currentProduct) {
+        console.error('Producto no encontrado:', productId);
         return;
     }
 
-    detailImage.src = selectedProduct.image_url;
-    detailImage.alt = selectedProduct.name;
-    // Fallback para imagen rota en detalle
-    detailImage.onerror = function() {
-        this.onerror = null;
-        this.src = 'https://via.placeholder.com/400?text=Imagen+No+Disponible';
-    };
+    document.getElementById('detail-image').src = currentProduct.image_url;
+    document.getElementById('detail-image').alt = currentProduct.name;
+    document.getElementById('detail-name').textContent = currentProduct.name;
+    document.getElementById('detail-id').textContent = currentProduct.product_id;
+    document.getElementById('detail-description').textContent = currentProduct.description || 'Sin descripción.';
+    document.getElementById('detail-price').textContent = currentProduct.price.toLocaleString('es-CO');
 
-    detailName.textContent = selectedProduct.name;
-    detailId.textContent = selectedProduct.product_id;
-    detailDescription.textContent = selectedProduct.description;
-    detailPrice.textContent = formatPrice(selectedProduct.price);
+    const detailOptionsDiv = document.getElementById('detail-options');
+    detailOptionsDiv.innerHTML = '';
 
-    // Opciones de talla/color
-    detailOptions.innerHTML = ''; // Limpiar opciones anteriores
-    if (selectedProduct.sizes && selectedProduct.sizes.length > 0) {
-        const sizeSelect = document.createElement('select');
-        sizeSelect.id = 'select-size';
-        sizeSelect.innerHTML = '<option value="">Selecciona una talla</option>';
-        selectedProduct.sizes.forEach(size => {
+    // Mostrar opciones de tallas si existen
+    if (currentProduct.sizes && currentProduct.sizes.length > 0) {
+        const sizesDiv = document.createElement('div');
+        sizesDiv.innerHTML = '<label for="select-size">Talla:</label><select id="select-size"></select>';
+        const selectSize = sizesDiv.querySelector('#select-size');
+        currentProduct.sizes.forEach(size => {
             const option = document.createElement('option');
             option.value = size;
             option.textContent = size;
-            sizeSelect.appendChild(option);
+            selectSize.appendChild(option);
         });
-        const sizeLabel = document.createElement('label');
-        sizeLabel.htmlFor = 'select-size';
-        sizeLabel.textContent = 'Talla:';
-        detailOptions.appendChild(sizeLabel);
-        detailOptions.appendChild(sizeSelect);
+        detailOptionsDiv.appendChild(sizesDiv);
     }
 
-    if (selectedProduct.colors && selectedProduct.colors.length > 0) {
-        const colorSelect = document.createElement('select');
-        colorSelect.id = 'select-color';
-        colorSelect.innerHTML = '<option value="">Selecciona un color</option>';
-        selectedProduct.colors.forEach(color => {
+    // Mostrar opciones de colores si existen
+    if (currentProduct.colors && currentProduct.colors.length > 0) {
+        const colorsDiv = document.createElement('div');
+        colorsDiv.innerHTML = '<label for="select-color">Color:</label><select id="select-color"></select>';
+        const selectColor = colorsDiv.querySelector('#select-color');
+        currentProduct.colors.forEach(color => {
             const option = document.createElement('option');
             option.value = color;
             option.textContent = color;
-            colorSelect.appendChild(option);
+            selectColor.appendChild(option);
         });
-        const colorLabel = document.createElement('label');
-        colorLabel.htmlFor = 'select-color';
-        colorLabel.textContent = 'Color:';
-        detailOptions.appendChild(colorLabel);
-        detailOptions.appendChild(colorSelect);
+        detailOptionsDiv.appendChild(colorsDiv);
     }
 
-    showSection(productDetailSection);
+    // Mostrar u ocultar botones según disponibilidad de stock
+    const isAvailable = currentProduct.stock === undefined || currentProduct.stock > 0;
+    addToCartButton.style.display = isAvailable ? 'block' : 'none';
+    buyNowButton.style.display = isAvailable ? 'block' : 'none';
+    consultantButton.style.display = 'block'; // El consultor siempre está disponible
+
+    if (!isAvailable) {
+        const stockMessage = document.createElement('p');
+        stockMessage.className = 'out-of-stock-message';
+        stockMessage.textContent = 'Producto agotado.';
+        detailOptionsDiv.appendChild(stockMessage);
+    }
+
+
+    productListSection.classList.add('hidden');
+    cartSection.classList.add('hidden');
+    productDetailSection.classList.remove('hidden');
 };
 
-// --- GESTIÓN DEL CARRITO ---
+// --- Funciones de Carrito ---
 
 const updateCartCount = () => {
-    cartCountSpan.textContent = cart.reduce((total, item) => total + item.quantity, 0);
+    let totalItems = 0;
+    for (const productId in cart) {
+        totalItems += cart[productId].quantity;
+    }
+    cartCountSpan.textContent = totalItems;
 };
 
 const addToCart = () => {
-    if (!selectedProduct) return;
+    if (!currentProduct) return;
 
-    let selectedSize = '';
-    let selectedColor = '';
+    const selectedSize = document.getElementById('select-size') ? document.getElementById('select-size').value : 'N/A';
+    const selectedColor = document.getElementById('select-color') ? document.getElementById('select-color').value : 'N/A';
 
-    if (selectedProduct.sizes.length > 0) { // Si hay tallas disponibles para este producto
-        const sizeSelect = document.getElementById('select-size');
-        selectedSize = sizeSelect.value;
-        if (!selectedSize) {
-            alert('Por favor, selecciona una talla.');
-            return;
-        }
-    }
-    if (selectedProduct.colors.length > 0) { // Si hay colores disponibles para este producto
-        const colorSelect = document.getElementById('select-color');
-        selectedColor = colorSelect.value;
-        if (!selectedColor) {
-            alert('Por favor, selecciona un color.');
-            return;
-        }
-    }
+    const cartItemId = `${currentProduct.product_id}-${selectedSize}-${selectedColor}`;
 
-    // Identificador único para el ítem del carrito (ID de producto + opciones)
-    const cartItemId = `${selectedProduct.product_id}-${selectedSize}-${selectedColor}`;
-
-    const existingItem = cart.find(item => item.id === cartItemId);
-
-    if (existingItem) {
-        existingItem.quantity++;
+    if (cart[cartItemId]) {
+        cart[cartItemId].quantity++;
     } else {
-        cart.push({
-            id: cartItemId,
-            product_id: selectedProduct.product_id,
-            name: selectedProduct.name,
-            price: selectedProduct.price,
-            image_url: selectedProduct.image_url,
-            size: selectedSize,
-            color: selectedColor,
-            quantity: 1
-        });
+        cart[cartItemId] = {
+            ...currentProduct,
+            quantity: 1,
+            selected_size: selectedSize,
+            selected_color: selectedColor,
+            cart_item_id: cartItemId // Identificador único para el item en el carrito
+        };
     }
-    localStorage.setItem('urbanlife_cart', JSON.stringify(cart));
     updateCartCount();
-    alert(`"${selectedProduct.name}" añadido al carrito.`);
-    showSection(productListSection); // Regresa al catálogo después de añadir
+    alert(`"${currentProduct.name}" añadido al carrito.`);
+    console.log('Carrito actual:', cart);
 };
 
-const displayCart = () => {
+const renderCart = () => {
     cartItemsContainer.innerHTML = ''; // Limpiar carrito
     let total = 0;
 
-    if (cart.length === 0) {
-        cartItemsContainer.innerHTML = '<p class="empty-cart-message">Tu carrito está vacío.</p>';
-        cartTotalSpan.textContent = formatPrice(0);
-        checkoutButton.disabled = true;
-        return;
+    const cartItemsArray = Object.values(cart); // Convertir objeto a array para iterar
+
+    if (cartItemsArray.length === 0) {
+        emptyCartMessage.style.display = 'block';
+    } else {
+        emptyCartMessage.style.display = 'none';
+        cartItemsArray.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'cart-item';
+            itemDiv.innerHTML = `
+                <img src="${item.image_url}" alt="${item.name}" />
+                <div class="cart-item-info">
+                    <h3>${item.name}</h3>
+                    <p>ID: ${item.product_id}</p>
+                    ${item.selected_size !== 'N/A' ? `<p>Talla: ${item.selected_size}</p>` : ''}
+                    ${item.selected_color !== 'N/A' ? `<p>Color: ${item.selected_color}</p>` : ''}
+                    <p>Cantidad: ${item.quantity}</p>
+                    <p class="price">$${(item.price * item.quantity).toLocaleString('es-CO')}</p>
+                </div>
+                <button class="remove-from-cart" data-id="${item.cart_item_id}">Eliminar</button>
+            `;
+            cartItemsContainer.appendChild(itemDiv);
+            total += item.price * item.quantity;
+        });
     }
-
-    checkoutButton.disabled = false;
-
-    cart.forEach(item => {
-        const cartItemDiv = document.createElement('div');
-        cartItemDiv.classList.add('cart-item');
-        cartItemDiv.dataset.id = item.id;
-
-        const optionsText = [item.size, item.color].filter(Boolean).join(' / '); // Filtra opciones vacías
-
-        cartItemDiv.innerHTML = `
-            <img src="${item.image_url}" alt="${item.name}" onerror="this.onerror=null;this.src='https://via.placeholder.com/80?text=No+Img';">
-            <div class="item-details">
-                <h3>${item.name}</h3>
-                <p class="item-options">${optionsText}</p>
-            </div>
-            <div class="item-actions">
-                <input type="number" value="${item.quantity}" min="1" data-id="${item.id}">
-                <button class="remove-button" data-id="${item.id}">Eliminar</button>
-            </div>
-            <p class="item-price">$${formatPrice(item.price * item.quantity)}</p>
-        `;
-
-        cartItemDiv.querySelector('input[type="number"]').addEventListener('change', updateCartItemQuantity);
-        cartItemDiv.querySelector('.remove-button').addEventListener('click', removeCartItem);
-        cartItemsContainer.appendChild(cartItemDiv);
-        total += item.price * item.quantity;
-    });
-
-    cartTotalSpan.textContent = formatPrice(total);
+    cartTotalSpan.textContent = total.toLocaleString('es-CO');
 };
 
-const updateCartItemQuantity = (event) => {
-    const itemId = event.target.dataset.id;
-    let newQuantity = parseInt(event.target.value);
-
-    if (isNaN(newQuantity) || newQuantity < 1) {
-        newQuantity = 1; // Asegura que la cantidad sea al menos 1
-        event.target.value = 1;
-    }
-
-    const itemIndex = cart.findIndex(item => item.id === itemId);
-    if (itemIndex > -1) {
-        cart[itemIndex].quantity = newQuantity;
-        localStorage.setItem('urbanlife_cart', JSON.stringify(cart));
-        displayCart(); // Volver a renderizar para actualizar totales
+const removeFromCart = (cartItemId) => {
+    if (cart[cartItemId]) {
+        delete cart[cartItemId];
         updateCartCount();
+        renderCart(); // Volver a renderizar el carrito
     }
 };
 
-const removeCartItem = (event) => {
-    const itemId = event.target.dataset.id;
-    cart = cart.filter(item => item.id !== itemId);
-    localStorage.setItem('urbanlife_cart', JSON.stringify(cart));
-    displayCart();
-    updateCartCount();
-};
 
-// --- GESTIÓN DE ENLACES DE WHATSAPP ---
+// --- Integración con WhatsApp ---
 
-const handleSingleProductBuy = () => {
-    if (!selectedProduct) return;
-
-    let selectedSize = '';
-    let selectedColor = '';
-
-    const sizeSelect = document.getElementById('select-size');
-    const colorSelect = document.getElementById('select-color');
-
-    // Validar selección solo si el producto tiene opciones
-    if (selectedProduct.sizes && selectedProduct.sizes.length > 0) {
-        selectedSize = sizeSelect.value;
-        if (!selectedSize) {
-            alert('Por favor, selecciona una talla.');
-            return;
-        }
-    }
-    if (selectedProduct.colors && selectedProduct.colors.length > 0) {
-        selectedColor = colorSelect.value;
-        if (!selectedColor) {
-            alert('Por favor, selecciona un color.');
-            return;
-        }
-    }
-
-    const optionsText = [selectedSize, selectedColor].filter(Boolean).join(' / ');
-    const message = `Hola! 👋 Estoy interesado en el siguiente producto de tu catálogo Urbanlife:\n\n*Producto:* ${selectedProduct.name}\n*ID:* ${selectedProduct.product_id}\n*Precio:* $${formatPrice(selectedProduct.price)}\n${optionsText ? `*Opciones:* ${optionsText}\n` : ''}\nPor favor, dame más información o ayúdame a concretar la compra. ¡Gracias!`;
-    window.open(generateWhatsAppLink(message), '_blank');
-};
-
-const handleCheckout = () => {
-    if (cart.length === 0) {
-        alert('Tu carrito está vacío.');
-        return;
-    }
-
-    let orderMessage = "Hola! 👋 Me gustaría hacer el siguiente pedido de tu catálogo Urbanlife:\n\n";
+const generateWhatsAppMessage = (type) => {
+    let message = `¡Hola! Me gustaría hacer un pedido desde tu catálogo web.`;
+    let itemsSummary = '';
     let total = 0;
 
-    cart.forEach((item, index) => {
-        const optionsText = [item.size, item.color].filter(Boolean).join(' / ');
-        orderMessage += `${index + 1}. *${item.name}*\n   Cantidad: ${item.quantity}\n   ${optionsText ? `Opciones: ${optionsText}\n` : ''}   Precio Unitario: $${formatPrice(item.price)}\n   Subtotal: $${formatPrice(item.price * item.quantity)}\n\n`;
-        total += item.price * item.quantity;
-    });
+    if (type === 'buy_now' && currentProduct) {
+        const selectedSize = document.getElementById('select-size') ? document.getElementById('select-size').value : 'N/A';
+        const selectedColor = document.getElementById('select-color') ? document.getElementById('select-color').value : 'N/A';
+        itemsSummary = `\nProducto: ${currentProduct.name} (ID: ${currentProduct.product_id})\n`;
+        if (selectedSize !== 'N/A') itemsSummary += `Talla: ${selectedSize}\n`;
+        if (selectedColor !== 'N/A') itemsSummary += `Color: ${selectedColor}\n`;
+        itemsSummary += `Cantidad: 1\n`;
+        itemsSummary += `Precio unitario: $${currentProduct.price.toLocaleString('es-CO')}\n`;
+        total = currentProduct.price;
+        message += itemsSummary + `Total: $${total.toLocaleString('es-CO')}`;
+    } else if (type === 'checkout') {
+        const cartItemsArray = Object.values(cart);
+        if (cartItemsArray.length === 0) {
+            alert('Tu carrito está vacío. No se puede finalizar la compra.');
+            return '';
+        }
+        itemsSummary = '\nMis productos:\n';
+        cartItemsArray.forEach(item => {
+            itemsSummary += `- ${item.name} (ID: ${item.product_id})\n`;
+            if (item.selected_size !== 'N/A') itemsSummary += `  Talla: ${item.selected_size}\n`;
+            if (item.selected_color !== 'N/A') itemsSummary += `  Color: ${item.selected_color}\n`;
+            itemsSummary += `  Cantidad: ${item.quantity}\n`;
+            itemsSummary += `  Subtotal: $${(item.price * item.quantity).toLocaleString('es-CO')}\n`;
+            total += item.price * item.quantity;
+        });
+        message += itemsSummary + `\nTotal de mi compra: $${total.toLocaleString('es-CO')}\n\n¡Espero tu confirmación!`;
+    } else if (type === 'consultant') {
+         message = '¡Hola! Me gustaría hablar con un consultor sobre los productos de su catálogo.';
+         if (currentProduct) {
+            message += ` Estoy interesado en el producto: ${currentProduct.name} (ID: ${currentProduct.product_id}).`;
+         }
+    } else if (type === 'consultant_cart') {
+         message = '¡Hola! Me gustaría hablar con un consultor sobre mi carrito de compras.';
+         const cartItemsArray = Object.values(cart);
+         if (cartItemsArray.length > 0) {
+            itemsSummary = '\nLos productos en mi carrito son:\n';
+            cartItemsArray.forEach(item => {
+                itemsSummary += `- ${item.name} (ID: ${item.product_id}) x ${item.quantity}\n`;
+            });
+            message += itemsSummary;
+         }
+    }
 
-    orderMessage += `*Total a Pagar: $${formatPrice(total)}*\n\n`;
-    orderMessage += "Por favor, confírmame los detalles y los pasos para el pago. ¡Gracias!";
-
-    window.open(generateWhatsAppLink(orderMessage), '_blank');
-
-    // Opcional: limpiar el carrito después de enviar el pedido
-    cart = [];
-    localStorage.setItem('urbanlife_cart', JSON.stringify(cart));
-    updateCartCount();
-    displayCart();
-    alert('Tu pedido ha sido enviado a WhatsApp. Revisa tu chat para finalizar la compra.');
-    showSection(productListSection); // Regresar al catálogo principal
+    return `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
 };
 
-const handleConsultantChat = () => {
-    const message = "Hola! 👋 Necesito ayuda con el catálogo Urbanlife. ¿Podrías asistirme, por favor?";
-    window.open(generateWhatsAppLink(message), '_blank');
-};
-
-
-// --- EVENT LISTENERS ---
+// --- Event Listeners ---
 
 // Navegación por categorías
 navButtons.forEach(button => {
     button.addEventListener('click', () => {
-        navButtons.forEach(btn => btn.classList.remove('active')); // Desactiva todos
-        button.classList.add('active'); // Activa el clickeado
-
-        const category = button.dataset.category;
+        const category = button.getAttribute('data-category');
         if (category === 'Carrito') {
-            displayCart();
-            showSection(cartSection);
+            renderCart();
+            productListSection.classList.add('hidden');
+            productDetailSection.classList.add('hidden');
+            cartSection.classList.remove('hidden');
         } else {
             const filteredProducts = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
             displayProducts(filteredProducts);
-            showSection(productListSection);
+            productListSection.classList.remove('hidden');
+            productDetailSection.classList.add('hidden');
+            cartSection.classList.add('hidden');
         }
     });
 });
 
-// Botones de navegación Volver
-backToCatalogButton.addEventListener('click', () => showSection(productListSection));
-backToProductsFromCartButton.addEventListener('click', () => showSection(productListSection));
-
-// Botones de acción en detalle de producto
-addToCartButton.addEventListener('click', addToCart);
-buyNowButton.addEventListener('click', handleSingleProductBuy);
-consultantButton.addEventListener('click', handleConsultantChat);
-
-// Botones de acción en el carrito
-checkoutButton.addEventListener('click', handleCheckout);
-consultantCartButton.addEventListener('click', handleConsultantChat);
-
-
-// --- INICIALIZACIÓN ---
-document.addEventListener('DOMContentLoaded', () => {
-    fetchProducts();
-    updateCartCount(); // Asegura que el contador se actualice al cargar
-    // Activa el botón "Todos" por defecto al cargar
-    document.querySelector('.nav-button[data-category="all"]').classList.add('active');
+// Delegación de eventos para botones "Ver Detalles"
+productListSection.addEventListener('click', (event) => {
+    if (event.target.classList.contains('view-detail-button')) {
+        const productId = event.target.getAttribute('data-id');
+        showProductDetail(productId);
+    }
 });
+
+backToCatalogButton.addEventListener('click', () => {
+    productDetailSection.classList.add('hidden');
+    productListSection.classList.remove('hidden');
+});
+
+backToProductsFromCartButton.addEventListener('click', () => {
+    cartSection.classList.add('hidden');
+    productListSection.classList.remove('hidden');
+});
+
+addToCartButton.addEventListener('click', addToCart);
+
+buyNowButton.addEventListener('click', () => {
+    const whatsappLink = generateWhatsAppMessage('buy_now');
+    if (whatsappLink) window.open(whatsappLink, '_blank');
+});
+
+checkoutButton.addEventListener('click', () => {
+    const whatsappLink = generateWhatsAppMessage('checkout');
+    if (whatsappLink) window.open(whatsappLink, '_blank');
+});
+
+consultantButton.addEventListener('click', () => {
+    const whatsappLink = generateWhatsAppMessage('consultant');
+    if (whatsappLink) window.open(whatsappLink, '_blank');
+});
+
+consultantCartButton.addEventListener('click', () => {
+    const whatsappLink = generateWhatsAppMessage('consultant_cart');
+    if (whatsappLink) window.open(whatsappLink, '_blank');
+});
+
+// Delegación de eventos para botones "Eliminar" del carrito
+cartItemsContainer.addEventListener('click', (event) => {
+    if (event.target.classList.contains('remove-from-cart')) {
+        const cartItemId = event.target.getAttribute('data-id');
+        removeFromCart(cartItemId);
+    }
+});
+
+// --- Inicialización ---
+fetchProducts();
+updateCartCount(); // Actualizar el contador del carrito al cargar
