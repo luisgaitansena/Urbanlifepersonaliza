@@ -462,3 +462,24 @@ body {
         margin-bottom: 5px;
     }
 }
+
+/* Estilos para la sección "Quiénes somos" */
+#about-us-section h2 {
+    text-align: center;
+    color: #007bff;
+    margin-bottom: 15px;
+    font-size: 1.8rem;
+}
+
+#about-us-section p {
+    text-align: justify;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 15px;
+    font-size: 1rem;
+    color: #555;
+}
+
+#about-us-section p strong {
+    color: #FFD700; /* Dorado para el nombre de la empresa */
+}
