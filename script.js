@@ -2,7 +2,7 @@
 // URL DIRECTA para obtener la hoja como CSV
 const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyGzk1QIOLgGgVHj2DNi8ofN_oqzQl7qa1_V4zYzW3oK0Q7kDhWw9GD0t_bFmDs5cjmG8YaWwPDCbM/pub?output=csv'; // ¡REEMPLAZA ESTE CON TU ENLACE DIRECTO!
 // Tu número de WhatsApp completo (ej. 573101234567 para Colombia)
-const WHATSAPP_PHONE_NUMBER = 'TU_NUMERO_DE_TELEFONO_AQUI'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
+const WHATSAPP_PHONE_NUMBER = '573184950436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
 // ---------------------
 
 // Referencias a elementos del DOM
@@ -319,7 +319,7 @@ const renderCart = () => {
 
     // Lógica para el mensaje de envío gratuito: SOLO cuando haya EXACTAMENTE 3 artículos
     if (totalQuantityInCart === 3) { // CAMBIADO a === 3
-        shippingMessageDiv.innerHTML = '<p class="free-shipping-message">¡Envío gratuito a nivel nacional!</p>';
+        shippingMessageDiv.innerHTML = '<p class="free-shipping-message"> ESTE PEDIDO TIENE ¡Envío gratuito a nivel nacional!</p>';
     } else {
         shippingMessageDiv.innerHTML = ''; // Limpiar el mensaje si no se cumple la condición
     }
