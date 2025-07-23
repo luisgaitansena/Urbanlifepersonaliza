@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Urbanlife</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <h1>Catálogo Urbanlife</h1>
+        <nav class="categories-nav">
+            <button class="nav-button" data-category="all">Todos</button>
+            <button class="nav-button" data-category="Ropa">Ropa</button>
+            <button class="nav-button" data-category="Cuadros">Cuadros</button>
+            <button class="nav-button" data-category="Diseños">Diseños</button>
+            <button class="nav-button" data-category="Personalizados">Personalizados</button>
+            <button class="nav-button" data-category="Carrito">
+                Carrito (<span id="cart-count">0</span>)
+            </button>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <section id="product-list" class="product-grid">
+            <div class="loading-message">Cargando productos...</div>
+        </section>
+
+        <section id="product-detail" class="product-detail-section hidden">
+            <button id="back-to-catalog" class="back-button">← Volver al catálogo</button>
+            <div class="detail-content">
+                <img id="detail-image" src="" alt="Imagen del producto" class="detail-image">
+                <div class="detail-info">
+                    <h2 id="detail-name"></h2>
+                    <p class="product-id">ID: <span id="detail-id"></span></p>
+                    <p id="detail-description"></p>
+                    <p class="price">Precio: $<span id="detail-price"></span></p>
+                    <div id="detail-options" class="detail-options">
+                        </div>
+                    <div class="detail-actions">
+                        <button id="add-to-cart-button" class="buy-button">Añadir al Carrito</button>
+                        <button id="buy-now-button" class="whatsapp-button">Comprar Ya!</button>
+                        <button id="consultant-button" class="whatsapp-button consultant">Hablar con un consultor</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cart-section" class="cart-section hidden">
+            <button id="back-to-products-from-cart" class="back-button">← Volver a productos</button>
+            <h2>Carrito de Compras</h2>
+            <div id="cart-items" class="cart-items">
+                <p class="empty-cart-message">Tu carrito está vacío.</p>
+            </div>
+            <div class="cart-summary">
+                <p>Total a Pagar: $<span id="cart-total">0</span></p>
+                <button id="checkout-button" class="buy-button">Pagar Ahora!</button>
+                <button id="consultant-cart-button" class="whatsapp-button consultant">Hablar con un consultor</button>
+                <p class="whatsapp-info">Al darle pagar YA!! se genera el pedido y se remite al WhatsApp</p>
+                <p class="whatsapp-info">Al hablar con un consultor igual lo remites al WhatsApp</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
