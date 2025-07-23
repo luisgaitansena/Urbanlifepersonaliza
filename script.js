@@ -2,7 +2,7 @@
 // URL DIRECTA para obtener la hoja como CSV
 const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyGzk1QIOLgGgVHj2DNi8ofN_oqzQl7qa1_V4zYzW3oK0Q7kDhWw9GD0t_bFmDs5cjmG8YaWwPDCbM/pub?output=csv'; // ¡TU ENLACE DIRECTO!
 // Tu número de WhatsApp completo (ej. 573101234567 para Colombia)
-const WHATSAPP_PHONE_NUMBER = 'TU_NUMERO_DE_TELEFONO_AQUI'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
+const WHATSAPP_PHONE_NUMBER = '573184950436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
 // ---------------------
 
 // Referencias a elementos del DOM
@@ -102,11 +102,13 @@ const parseCSV = (csvText) => {
 const getRandomProductsPerCategory = (products, countPerCategory = 2) => {
     const categorizedProducts = {};
     products.forEach(p => {
-        if (p.category) {
-            if (!categorizedProducts[p.category]) {
-                categorizedProducts[p.category] = [];
+        // Usar la categoría "Ropa" o la categoría del producto si no es ropa
+        const categoryKey = p.category === 'Ropa' && p.sub_category ? p.sub_category : p.category;
+        if (categoryKey) {
+            if (!categorizedProducts[categoryKey]) {
+                categorizedProducts[categoryKey] = [];
             }
-            categorizedProducts[p.category].push(p);
+            categorizedProducts[categoryKey].push(p);
         }
     });
 
@@ -136,7 +138,7 @@ const fetchProducts = async () => {
         }
         const csvText = await response.text();
         allProducts = parseCSV(csvText);
-
+        
         // Mostrar productos aleatorios por categoría al cargar la página (Inicio)
         displayProductsForHomepage();
 
@@ -382,18 +384,25 @@ navButtons.forEach(button => {
     button.addEventListener('click', () => {
         const category = button.getAttribute('data-category');
 
-        // Ocultar todas las secciones y subcategorías
+        // Ocultar todas las secciones
         productListSection.classList.add('hidden');
         productDetailSection.classList.add('hidden');
         cartSection.classList.add('hidden');
         aboutUsSection.classList.add('hidden'); // Ocultar "Quiénes somos" por defecto
-        subcategoryNav.classList.add('hidden');
+        subcategoryNav.classList.add('hidden'); // Ocultar subcategorías por defecto
+
+        // Remover clase 'active' de todos los botones para reestablecer
+        navButtons.forEach(btn => btn.classList.remove('active-category'));
+        subcategoryButtons.forEach(btn => btn.classList.remove('active-subcategory'));
+        
+        button.classList.add('active-category'); // Marcar el botón activo
 
         if (category === 'Carrito') {
             renderCart();
             cartSection.classList.remove('hidden');
         } else if (category === 'all') { // Cuando se hace clic en "Inicio"
             displayProductsForHomepage();
+            aboutUsSection.classList.remove('hidden'); // Mostrar "Quiénes somos"
         } else if (category === 'Ropa') {
             // Mostrar los botones de subcategoría de ropa
             subcategoryNav.classList.remove('hidden');
@@ -415,6 +424,10 @@ subcategoryButtons.forEach(button => {
     button.addEventListener('click', () => {
         const mainCategory = button.getAttribute('data-category'); // Debería ser 'Ropa'
         const subcategory = button.getAttribute('data-subcategory');
+
+        // Remover clase 'active' de todos los botones de subcategoría para reestablecer
+        subcategoryButtons.forEach(btn => btn.classList.remove('active-subcategory'));
+        button.classList.add('active-subcategory'); // Marcar el botón de subcategoría activo
 
         let filteredProducts = [];
         if (subcategory === 'all') {
@@ -446,14 +459,14 @@ productListSection.addEventListener('click', (event) => {
 
 backToCatalogButton.addEventListener('click', () => {
     productDetailSection.classList.add('hidden');
-    // Cuando volvemos del detalle, decidimos qué mostrar: Inicio o la última categoría/subcategoría
-    // Para simplificar, volverá a la vista "Inicio" por defecto, o si Ropa estaba activa, a sus subcategorías
-    const currentCategoryButton = document.querySelector('.nav-button[data-category="Ropa"]'); // Asumimos Ropa es la única con subcategorías
-    if (currentCategoryButton && !currentCategoryButton.classList.contains('hidden')) { // Si el botón Ropa no está oculto
+    // Volver a la página de inicio o a la vista de la categoría Ropa si estaba activa
+    const ropaButton = document.querySelector('.nav-button[data-category="Ropa"]');
+    if (ropaButton && ropaButton.classList.contains('active-category')) {
         const filteredProducts = allProducts.filter(p => p.category === 'Ropa');
         displayProducts(filteredProducts);
         subcategoryNav.classList.remove('hidden');
         productListSection.classList.remove('hidden');
+        aboutUsSection.classList.add('hidden'); // Asegurarse de que esté oculto
     } else {
         displayProductsForHomepage(); // Vuelve a la página de inicio con productos aleatorios
     }
@@ -461,13 +474,14 @@ backToCatalogButton.addEventListener('click', () => {
 
 backToProductsFromCartButton.addEventListener('click', () => {
     cartSection.classList.add('hidden');
-    // Similar a backToCatalogButton, volverá a Inicio o a la vista de Ropa
-    const currentCategoryButton = document.querySelector('.nav-button[data-category="Ropa"]');
-    if (currentCategoryButton && !currentCategoryButton.classList.contains('hidden')) {
+    // Volver a la página de inicio o a la vista de la categoría Ropa si estaba activa
+    const ropaButton = document.querySelector('.nav-button[data-category="Ropa"]');
+    if (ropaButton && ropaButton.classList.contains('active-category')) {
          const filteredProducts = allProducts.filter(p => p.category === 'Ropa');
          displayProducts(filteredProducts);
         subcategoryNav.classList.remove('hidden');
         productListSection.classList.remove('hidden');
+        aboutUsSection.classList.add('hidden'); // Asegurarse de que esté oculto
     } else {
         displayProductsForHomepage(); // Vuelve a la página de inicio con productos aleatorios
     }
@@ -506,3 +520,14 @@ cartItemsContainer.addEventListener('click', (event) => {
 // --- Inicialización ---
 fetchProducts(); // Carga los productos y llama a displayProductsForHomepage()
 updateCartCount(); // Actualizar el contador del carrito al cargar
+
+// Función para mantener la clase 'active-category'
+const setActiveButton = (category) => {
+    navButtons.forEach(btn => {
+        if (btn.getAttribute('data-category') === category) {
+            btn.classList.add('active-category');
+        } else {
+            btn.classList.remove('active-category');
+        }
+    });
+};
