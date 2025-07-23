@@ -1,5 +1,5 @@
 // --- CONFIGURACIÓN ---
-const GOOGLE_SHEET_ID = '1bh8zFAQxE7B7mLhmzkGblp3udws4u2xW76_4U32zCGk'; // ID de tu Google Sheet
+const GOOGLE_SHEET_ID = 'https://docs.google.com/spreadsheets/d/1bh8zFAQxE7B7mLhmzkGblp3udws4u2xW76_4U32zCGk/edit?usp=sharing'; // ID de tu Google Sheet
 const WHATSAPP_PHONE_NUMBER = '573101234567'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO, ej. 573101234567 para Colombia!
 
 // --- SELECTORES DE ELEMENTOS HTML ---
