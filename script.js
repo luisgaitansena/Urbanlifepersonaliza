@@ -1,6 +1,6 @@
 // --- CONFIGURACIÓN ---
 const GOOGLE_SHEET_ID = 'https://docs.google.com/spreadsheets/d/1bh8zFAQxE7B7mLhmzkGblp3udws4u2xW76_4U32zCGk/edit?usp=sharing'; // ID de tu Google Sheet
-const WHATSAPP_PHONE_NUMBER = '573101234567'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO, ej. 573101234567 para Colombia!
+const WHATSAPP_PHONE_NUMBER = '573184920436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO, ej. 573101234567 para Colombia!
 
 // --- SELECTORES DE ELEMENTOS HTML ---
 const productListSection = document.getElementById('product-list');
@@ -65,7 +65,6 @@ const fetchProducts = async () => {
     productListSection.innerHTML = '<p class="loading-message">Cargando productos...</p>'; // Mostrar mensaje de carga
     // URL para obtener la hoja como CSV (hoja 1, ID 0)
     const sheetURL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&gid=0`;
-
     try {
         const response = await fetch(sheetURL);
         const csvText = await response.text();
