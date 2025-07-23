@@ -287,7 +287,7 @@ const addToCart = () => {
 const renderCart = () => {
     cartItemsContainer.innerHTML = '';
     let total = 0;
-    let totalQuantityInCart = 0; // NUEVO: Para contar la cantidad total de artículos
+    let totalQuantityInCart = 0; // Para contar la cantidad total de artículos
 
     const cartItemsArray = Object.values(cart);
 
@@ -312,13 +312,13 @@ const renderCart = () => {
             `;
             cartItemsContainer.appendChild(itemDiv);
             total += item.price * item.quantity;
-            totalQuantityInCart += item.quantity; // NUEVO: Sumar la cantidad
+            totalQuantityInCart += item.quantity;
         });
     }
     cartTotalSpan.textContent = total.toLocaleString('es-CO');
 
-    // NUEVO: Lógica para el mensaje de envío gratuito
-    if (totalQuantityInCart >= 3) {
+    // Lógica para el mensaje de envío gratuito (CONDICIÓN CAMBIADA A > 3)
+    if (totalQuantityInCart > 3) { // CAMBIO AQUÍ: de >= 3 a > 3
         shippingMessageDiv.innerHTML = '<p class="free-shipping-message">¡Envío gratuito a nivel nacional!</p>';
     } else {
         shippingMessageDiv.innerHTML = ''; // Limpiar el mensaje si no se cumple la condición
@@ -410,7 +410,7 @@ navButtons.forEach(button => {
         if (category === 'Carrito') {
             renderCart();
             cartSection.classList.remove('hidden');
-        } else if (category === 'all') { // Cuando se hace clic en "Inicio"
+        } === 'all') { // Cuando se hace clic en "Inicio"
             displayProductsForHomepage();
             aboutUsSection.classList.remove('hidden'); // Mostrar "Quiénes somos"
         } else if (category === 'Ropa') {
