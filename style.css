@@ -76,6 +76,20 @@
     background-color: #0056b3;
 }
 
+/* Estilos para el banner del logo */
+.banner-section {
+    text-align: center;
+    padding: 10px;
+}
+
+.banner-logo {
+    max-width: 100%; /* Asegura que el logo sea responsivo */
+    height: auto; /* Mantiene la proporción */
+    max-height: 200px; /* Altura máxima para el banner, ajustable */
+    display: block; /* Elimina espacio extra debajo de la imagen */
+    margin: 0 auto; /* Centra la imagen */
+}
+
 
 /* Estilos para el listado de productos */
 #product-list {
@@ -393,6 +407,24 @@
     margin-left: 10px; /* Espacio entre los botones de checkout */
 }
 
+/* Estilo para el mensaje de envío gratuito */
+.free-shipping-message {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #28a745; /* Color verde para destacar */
+    background-color: #e6ffe6;
+    border: 1px solid #cceccc;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: -10px; /* Reducir el espacio con el total */
+    margin-bottom: 15px;
+    text-align: center;
+    width: fit-content; /* Ajustar al contenido */
+    margin-left: auto; /* Centrar en el espacio derecho */
+    margin-right: auto; /* Centrar en el espacio derecho */
+}
+
+
 /* Estilos para la sección "Quiénes somos" */
 #about-us-section h2 {
     text-align: center;
@@ -424,6 +456,11 @@
     .nav-button {
         width: 90%;
         max-width: 300px;
+    }
+
+    /* Ajuste para el banner en móviles */
+    .banner-logo {
+        max-height: 150px; /* Un poco más pequeño en móviles */
     }
 
     #product-list {
@@ -466,5 +503,9 @@
         width: 100%;
         margin-left: 0;
         margin-bottom: 10px;
+    }
+
+    .free-shipping-message {
+        width: 100%; /* Ocupar todo el ancho en móviles */
     }
 }
