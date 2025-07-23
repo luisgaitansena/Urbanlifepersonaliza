@@ -1,6 +1,6 @@
 // --- CONFIGURACIÓN ---
-const GOOGLE_SHEET_ID = 'https://docs.google.com/spreadsheets/d/1bh8zFAQxE7B7mLhmzkGblp3udws4u2xW76_4U32zCGk/edit?usp=sharing'; // ¡REEMPLAZA ESTE CON EL ID DE TU GOOGLE SHEET!
-const WHATSAPP_PHONE_NUMBER = '573184950436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO, ej. 573101234567 para Colombia!
+const GOOGLE_SHEET_ID = '1bh8zFAQxE7B7mLhmzkGblp3udws4u2xW76_4U32zCGk'; // ID de tu Google Sheet
+const WHATSAPP_PHONE_NUMBER = '573101234567'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO, ej. 573101234567 para Colombia!
 
 // --- SELECTORES DE ELEMENTOS HTML ---
 const productListSection = document.getElementById('product-list');
@@ -62,7 +62,7 @@ const generateWhatsAppLink = (message) => {
 // --- GESTIÓN DE DATOS (Google Sheets) ---
 
 const fetchProducts = async () => {
-    productListSection.querySelector('.loading-message').textContent = 'Cargando productos...';
+    productListSection.innerHTML = '<p class="loading-message">Cargando productos...</p>'; // Mostrar mensaje de carga
     // URL para obtener la hoja como CSV (hoja 1, ID 0)
     const sheetURL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&gid=0`;
 
@@ -74,44 +74,51 @@ const fetchProducts = async () => {
         allProducts = parseCSV(csvText);
         displayProducts(allProducts);
         updateCartCount(); // Asegura que el contador del carrito se actualice al cargar
-        productListSection.querySelector('.loading-message').classList.add('hidden'); // Oculta el mensaje de carga
+        if (allProducts.length === 0) {
+             productListSection.innerHTML = '<p class="loading-message">No se encontraron productos en la hoja de cálculo.</p>';
+        }
     } catch (error) {
         console.error('Error al cargar productos:', error);
-        productListSection.querySelector('.loading-message').textContent = 'Error al cargar los productos. Intenta recargar la página.';
+        productListSection.innerHTML = '<p class="loading-message">Error al cargar los productos. Asegúrate de que la hoja de cálculo esté publicada y el ID sea correcto.</p>';
     }
 };
 
-// Función para parsear CSV (simplificada)
+// Función para parsear CSV robusta
 const parseCSV = (csv) => {
-    const lines = csv.split('\n');
+    const lines = csv.split('\n').filter(line => line.trim() !== ''); // Filtrar líneas vacías
+    if (lines.length < 2) return []; // No hay suficientes datos (solo encabezados o nada)
+
     // Limpiar comillas y espacios de los encabezados, y eliminar BOM si existe
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').replace(/^\ufeff/, '')); 
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').replace(/^\ufeff/, ''));
     const products = [];
 
     for (let i = 1; i < lines.length; i++) {
         const currentLine = lines[i].trim();
-        if (currentLine.length === 0) continue; // Salta líneas vacías
+        // Usar una expresión regular más robusta para manejar comas dentro de comillas
+        const values = currentLine.match(/(?:\"([^\"]*)\"|([^,]*))(?:,|$)/g)
+            .map(v => v.replace(/,$/, '')) // Eliminar coma final
+            .map(v => v.startsWith('"') && v.endsWith('"') ? v.slice(1, -1) : v); // Eliminar comillas si las hay
 
-        // Una forma sencilla de parsear CSV considerando comas dentro de comillas
-        // Esto puede fallar con CSVs complejos, pero funciona para la estructura simple
-        const values = currentLine.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-
-        if (!values || values.length !== headers.length) {
-             console.warn(`Saltando línea ${i + 1} debido a un número inconsistente de columnas o formato inválido: ${currentLine}`);
-             continue;
+        if (values.length !== headers.length) {
+            console.warn(`Saltando línea ${i + 1} debido a un número inconsistente de columnas: ${currentLine}`);
+            continue;
         }
 
         const product = {};
         headers.forEach((header, index) => {
-            product[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+            let value = values[index] ? values[index].trim() : '';
+            // Limpiar caracteres no deseados que a veces vienen del CSV (como \r)
+            product[header.replace(/\r/g, '')] = value.replace(/\r/g, '');
         });
 
-        // Convertir price a número y otras limpiezas
+        // Procesar campos específicos
         product.price = parseFloat(product.price) || 0;
-        product.sizes = product.sizes ? product.sizes.split(',').map(s => s.trim()).filter(Boolean) : []; // Filtra vacíos
-        product.colors = product.colors ? product.colors.split(',').map(c => c.trim()).filter(Boolean) : []; // Filtra vacíos
+        // Asegurar que image_url siempre sea un string vacío si es null/undefined
+        product.image_url = product.image_url || 'https://via.placeholder.com/300?text=Imagen+No+Disponible';
+        product.sizes = product.sizes ? product.sizes.split(',').map(s => s.trim()).filter(Boolean) : [];
+        product.colors = product.colors ? product.colors.split(',').map(c => c.trim()).filter(Boolean) : [];
         product.stock = parseInt(product.stock) || 0; // Convertir stock a número
-        
+
         products.push(product);
     }
     return products;
@@ -377,7 +384,7 @@ const handleCheckout = () => {
     orderMessage += "Por favor, confírmame los detalles y los pasos para el pago. ¡Gracias!";
 
     window.open(generateWhatsAppLink(orderMessage), '_blank');
-    
+
     // Opcional: limpiar el carrito después de enviar el pedido
     cart = [];
     localStorage.setItem('urbanlife_cart', JSON.stringify(cart));
