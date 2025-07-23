@@ -2,22 +2,23 @@
 // URL DIRECTA para obtener la hoja como CSV
 const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyGzk1QIOLgGgVHj2DNi8ofN_oqzQl7qa1_V4zYzW3oK0Q7kDhWw9GD0t_bFmDs5cjmG8YaWwPDCbM/pub?output=csv'; // ¡TU ENLACE DIRECTO!
 // Tu número de WhatsApp completo (ej. 573101234567 para Colombia)
-const WHATSAPP_PHONE_NUMBER = '573184950436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
+const WHATSAPP_PHONE_NUMBER = 'TU_NUMERO_DE_TELEFONO_AQUI'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
 // ---------------------
 
 // Referencias a elementos del DOM
 const productListSection = document.getElementById('product-list');
 const productDetailSection = document.getElementById('product-detail');
 const cartSection = document.getElementById('cart-section');
+const aboutUsSection = document.getElementById('about-us-section'); // Nueva referencia
 const cartCountSpan = document.getElementById('cart-count');
 const cartTotalSpan = document.getElementById('cart-total');
 const cartItemsContainer = document.getElementById('cart-items');
 const emptyCartMessage = cartItemsContainer.querySelector('.empty-cart-message');
 
 // Botones de navegación principal y de subcategorías
-const navButtons = document.querySelectorAll('.nav-button:not(.subcategory-button)'); // Excluye los nuevos botones de subcategoría
-const subcategoryNav = document.getElementById('subcategory-nav'); // El contenedor de las subcategorías
-const subcategoryButtons = document.querySelectorAll('.subcategory-button'); // Los botones de subcategoría
+const navButtons = document.querySelectorAll('.nav-button:not(.subcategory-button)');
+const subcategoryNav = document.getElementById('subcategory-nav');
+const subcategoryButtons = document.querySelectorAll('.subcategory-button');
 
 // Botones de navegación y acción
 const backToCatalogButton = document.getElementById('back-to-catalog');
@@ -37,7 +38,6 @@ let cart = {}; // Almacena los productos en el carrito { product_id: { product_d
 // Función para limpiar y parsear el CSV (Versión más robusta)
 const parseCSV = (csvText) => {
     const lines = csvText.split('\n');
-    // Eliminar líneas vacías al final que puedan causar problemas
     const nonEmptyLines = lines.filter(line => line.trim() !== '');
 
     if (nonEmptyLines.length === 0) return [];
@@ -62,7 +62,7 @@ const parseCSV = (csvText) => {
                 currentField += char;
             }
         }
-        values.push(currentField.trim()); // Añadir el último campo
+        values.push(currentField.trim());
 
         if (values.length !== headers.length) {
             console.warn(`Saltando línea ${i + 1} debido a un número inconsistente de columnas. Esperadas: ${headers.length}, Encontradas: ${values.length}. Contenido: "${line}"`);
@@ -73,8 +73,8 @@ const parseCSV = (csvText) => {
         headers.forEach((header, index) => {
             let value = values[index];
             if (header === 'price' && value) {
-                value = parseFloat(value.replace(/[^[^0-9.]/g, '')); // Limpiar y convertir a número flotante
-                if (isNaN(value)) value = 0; // Asegurar que sea un número válido
+                value = parseFloat(value.replace(/[^0-9.]/g, ''));
+                if (isNaN(value)) value = 0;
             } else if (header === 'stock' && value) {
                 value = parseInt(value, 10);
                 if (isNaN(value)) value = 0;
@@ -82,13 +82,12 @@ const parseCSV = (csvText) => {
                 value = value.split(',').map(s => s.trim()).filter(s => s);
             } else if (header === 'colors' && value) {
                 value = value.split(',').map(c => c.trim()).filter(c => c);
-            } else if (header === 'sub_category' && value) { // Asegurarse de que sub_category sea un string limpio
+            } else if (header === 'sub_category' && value) {
                 value = value.toLowerCase().trim();
             }
             product[header] = value;
         });
 
-        // Validación mínima para asegurar que los productos tienen lo básico para ser mostrados
         if (product.product_id && product.name && product.price !== undefined && product.image_url) {
             products.push(product);
         } else {
@@ -99,9 +98,36 @@ const parseCSV = (csvText) => {
 };
 
 
+// Nueva función para obtener X productos aleatorios por categoría
+const getRandomProductsPerCategory = (products, countPerCategory = 2) => {
+    const categorizedProducts = {};
+    products.forEach(p => {
+        if (p.category) {
+            if (!categorizedProducts[p.category]) {
+                categorizedProducts[p.category] = [];
+            }
+            categorizedProducts[p.category].push(p);
+        }
+    });
+
+    const randomProducts = [];
+    for (const category in categorizedProducts) {
+        const categoryItems = categorizedProducts[category];
+        // Shuffle (mezclar) los productos de la categoría
+        for (let i = categoryItems.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [categoryItems[i], categoryItems[j]] = [categoryItems[j], categoryItems[i]];
+        }
+        // Tomar los primeros 'countPerCategory' productos
+        randomProducts.push(...categoryItems.slice(0, countPerCategory));
+    }
+    return randomProducts;
+};
+
+
 // Función para obtener productos de Google Sheet
 const fetchProducts = async () => {
-    productListSection.innerHTML = '<p class="loading-message">Cargando productos...</p>'; // Mostrar mensaje de carga
+    productListSection.innerHTML = '<p class="loading-message">Cargando productos...</p>';
 
     try {
         const response = await fetch(sheetURL);
@@ -110,16 +136,19 @@ const fetchProducts = async () => {
         }
         const csvText = await response.text();
         allProducts = parseCSV(csvText);
-        displayProducts(allProducts); // Mostrar todos los productos inicialmente
+
+        // Mostrar productos aleatorios por categoría al cargar la página (Inicio)
+        displayProductsForHomepage();
+
     } catch (error) {
         console.error('Error al cargar los productos:', error);
         productListSection.innerHTML = '<p class="error-message">Error al cargar los productos. Por favor, asegúrate de que tu Google Sheet esté publicado en la web como CSV y que el ID sea correcto.</p><p class="error-details">Detalle: ' + error.message + '</p>';
     }
 };
 
-// Función para mostrar productos en el DOM con filtrado de subcategoría
+// Función para mostrar productos en el DOM
 const displayProducts = (productsToDisplay) => {
-    productListSection.innerHTML = ''; // Limpiar productos existentes
+    productListSection.innerHTML = '';
     if (productsToDisplay.length === 0) {
         productListSection.innerHTML = '<p class="no-products-message">No se encontraron productos en esta categoría o la hoja está vacía/incorrecta.</p>';
         return;
@@ -138,6 +167,17 @@ const displayProducts = (productsToDisplay) => {
         `;
         productListSection.appendChild(productCard);
     });
+};
+
+// Función para mostrar productos en la página de inicio (aleatorios por categoría)
+const displayProductsForHomepage = () => {
+    const randomProducts = getRandomProductsPerCategory(allProducts);
+    displayProducts(randomProducts);
+    aboutUsSection.classList.remove('hidden'); // Asegurarse de que "Quiénes somos" esté visible en Inicio
+    productListSection.classList.remove('hidden');
+    productDetailSection.classList.add('hidden');
+    cartSection.classList.add('hidden');
+    subcategoryNav.classList.add('hidden'); // Ocultar subcategorías en Inicio
 };
 
 // Función para mostrar detalles de un producto
@@ -202,6 +242,8 @@ const showProductDetail = (productId) => {
 
     productListSection.classList.add('hidden');
     cartSection.classList.add('hidden');
+    aboutUsSection.classList.add('hidden'); // Ocultar "Quiénes somos" en detalle
+    subcategoryNav.classList.add('hidden'); // Ocultar subcategorías en detalle
     productDetailSection.classList.remove('hidden');
 };
 
@@ -231,7 +273,7 @@ const addToCart = () => {
             quantity: 1,
             selected_size: selectedSize,
             selected_color: selectedColor,
-            cart_item_id: cartItemId // Identificador único para el item en el carrito
+            cart_item_id: cartItemId
         };
     }
     updateCartCount();
@@ -240,10 +282,10 @@ const addToCart = () => {
 };
 
 const renderCart = () => {
-    cartItemsContainer.innerHTML = ''; // Limpiar carrito
+    cartItemsContainer.innerHTML = '';
     let total = 0;
 
-    const cartItemsArray = Object.values(cart); // Convertir objeto a array para iterar
+    const cartItemsArray = Object.values(cart);
 
     if (cartItemsArray.length === 0) {
         emptyCartMessage.style.display = 'block';
@@ -275,7 +317,7 @@ const removeFromCart = (cartItemId) => {
     if (cart[cartItemId]) {
         delete cart[cartItemId];
         updateCartCount();
-        renderCart(); // Volver a renderizar el carrito
+        renderCart();
     }
 };
 
@@ -340,15 +382,18 @@ navButtons.forEach(button => {
     button.addEventListener('click', () => {
         const category = button.getAttribute('data-category');
 
-        // Ocultar todas las secciones
+        // Ocultar todas las secciones y subcategorías
         productListSection.classList.add('hidden');
         productDetailSection.classList.add('hidden');
         cartSection.classList.add('hidden');
-        subcategoryNav.classList.add('hidden'); // Ocultar subcategorías por defecto
+        aboutUsSection.classList.add('hidden'); // Ocultar "Quiénes somos" por defecto
+        subcategoryNav.classList.add('hidden');
 
         if (category === 'Carrito') {
             renderCart();
             cartSection.classList.remove('hidden');
+        } else if (category === 'all') { // Cuando se hace clic en "Inicio"
+            displayProductsForHomepage();
         } else if (category === 'Ropa') {
             // Mostrar los botones de subcategoría de ropa
             subcategoryNav.classList.remove('hidden');
@@ -358,7 +403,7 @@ navButtons.forEach(button => {
             productListSection.classList.remove('hidden');
         } else {
             // Para otras categorías, ocultar subcategorías y mostrar productos
-            const filteredProducts = category === 'all' ? allProducts : allProducts.filter(p => p.category === category);
+            const filteredProducts = allProducts.filter(p => p.category === category);
             displayProducts(filteredProducts);
             productListSection.classList.remove('hidden');
         }
@@ -386,6 +431,7 @@ subcategoryButtons.forEach(button => {
         productListSection.classList.remove('hidden');
         productDetailSection.classList.add('hidden');
         cartSection.classList.add('hidden');
+        aboutUsSection.classList.add('hidden'); // Ocultar "Quiénes somos" en subcategoría
     });
 });
 
@@ -400,28 +446,30 @@ productListSection.addEventListener('click', (event) => {
 
 backToCatalogButton.addEventListener('click', () => {
     productDetailSection.classList.add('hidden');
-    productListSection.classList.remove('hidden');
-    // Si volvemos desde un detalle, y la categoría "Ropa" estaba activa, mostrar sus subcategorías
-    // Podríamos guardar la última categoría seleccionada para esto, pero por ahora solo se mostrarán
-    // las subcategorías si se vuelve de un detalle y la categoría activa es 'Ropa'
-    // Se puede mejorar este manejo de estado
-    const currentCategoryButton = document.querySelector('.nav-button.active-category'); // Si tuvieras una clase 'active-category'
-    if (currentCategoryButton && currentCategoryButton.getAttribute('data-category') === 'Ropa') {
+    // Cuando volvemos del detalle, decidimos qué mostrar: Inicio o la última categoría/subcategoría
+    // Para simplificar, volverá a la vista "Inicio" por defecto, o si Ropa estaba activa, a sus subcategorías
+    const currentCategoryButton = document.querySelector('.nav-button[data-category="Ropa"]'); // Asumimos Ropa es la única con subcategorías
+    if (currentCategoryButton && !currentCategoryButton.classList.contains('hidden')) { // Si el botón Ropa no está oculto
+        const filteredProducts = allProducts.filter(p => p.category === 'Ropa');
+        displayProducts(filteredProducts);
         subcategoryNav.classList.remove('hidden');
+        productListSection.classList.remove('hidden');
     } else {
-        subcategoryNav.classList.add('hidden');
+        displayProductsForHomepage(); // Vuelve a la página de inicio con productos aleatorios
     }
 });
 
 backToProductsFromCartButton.addEventListener('click', () => {
     cartSection.classList.add('hidden');
-    productListSection.classList.remove('hidden');
-    // Lógica similar para subcategorías al volver del carrito
-    const currentCategoryButton = document.querySelector('.nav-button.active-category');
-    if (currentCategoryButton && currentCategoryButton.getAttribute('data-category') === 'Ropa') {
+    // Similar a backToCatalogButton, volverá a Inicio o a la vista de Ropa
+    const currentCategoryButton = document.querySelector('.nav-button[data-category="Ropa"]');
+    if (currentCategoryButton && !currentCategoryButton.classList.contains('hidden')) {
+         const filteredProducts = allProducts.filter(p => p.category === 'Ropa');
+         displayProducts(filteredProducts);
         subcategoryNav.classList.remove('hidden');
+        productListSection.classList.remove('hidden');
     } else {
-        subcategoryNav.classList.add('hidden');
+        displayProductsForHomepage(); // Vuelve a la página de inicio con productos aleatorios
     }
 });
 
@@ -456,5 +504,5 @@ cartItemsContainer.addEventListener('click', (event) => {
 });
 
 // --- Inicialización ---
-fetchProducts();
+fetchProducts(); // Carga los productos y llama a displayProductsForHomepage()
 updateCartCount(); // Actualizar el contador del carrito al cargar
