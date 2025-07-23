@@ -1,8 +1,8 @@
 // --- CONFIGURACIÓN ---
 // URL DIRECTA para obtener la hoja como CSV
-const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyGzk1QIOLgGgVHj2DNi8ofN_oqzQl7qa1_V4zYzW3oK0Q7kDhWw9GD0t_bFmDs5cjmG8YaWwPDCbM/pub?output=csv'; // ¡TU ENLACE DIRECTO!
+const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyGzk1QIOLgGgVHj2DNi8ofN_oqzQl7qa1_V4zYzW3oK0Q7kDhWw9GD0t_bFmDs5cjmG8YaWwPDCbM/pub?output=csv'; // ¡REEMPLAZA ESTE CON TU ENLACE DIRECTO!
 // Tu número de WhatsApp completo (ej. 573101234567 para Colombia)
-const WHATSAPP_PHONE_NUMBER = '573184950436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
+const WHATSAPP_PHONE_NUMBER = 'TU_NUMERO_DE_TELEFONO_AQUI'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
 // ---------------------
 
 // Referencias a elementos del DOM
@@ -14,7 +14,7 @@ const cartCountSpan = document.getElementById('cart-count');
 const cartTotalSpan = document.getElementById('cart-total');
 const cartItemsContainer = document.getElementById('cart-items');
 const emptyCartMessage = cartItemsContainer.querySelector('.empty-cart-message');
-const shippingMessageDiv = document.getElementById('shipping-message'); // NUEVO: Referencia al div del mensaje de envío
+const shippingMessageDiv = document.getElementById('shipping-message'); // Referencia al div del mensaje de envío
 
 // Botones de navegación principal y de subcategorías
 const navButtons = document.querySelectorAll('.nav-button:not(.subcategory-button)');
@@ -26,7 +26,7 @@ const backToCatalogButton = document.getElementById('back-to-catalog');
 const backToProductsFromCartButton = document.getElementById('back-to-products-from-cart');
 const addToCartButton = document.getElementById('add-to-cart-button');
 const buyNowButton = document.getElementById('buy-now-button');
-const checkoutButton = document = document.getElementById('checkout-button');
+const checkoutButton = document.getElementById('checkout-button');
 const consultantButton = document.getElementById('consultant-button');
 const consultantCartButton = document.getElementById('consultant-cart-button');
 
@@ -139,7 +139,7 @@ const fetchProducts = async () => {
         }
         const csvText = await response.text();
         allProducts = parseCSV(csvText);
-
+        
         // Mostrar productos aleatorios por categoría al cargar la página (Inicio)
         displayProductsForHomepage();
 
@@ -312,13 +312,13 @@ const renderCart = () => {
             `;
             cartItemsContainer.appendChild(itemDiv);
             total += item.price * item.quantity;
-            totalQuantityInCart += item.quantity;
+            totalQuantityInCart += item.quantity; // Sumar la cantidad
         });
     }
     cartTotalSpan.textContent = total.toLocaleString('es-CO');
 
-    // Lógica para el mensaje de envío gratuito (CONDICIÓN CAMBIADA A > 3)
-    if (totalQuantityInCart > 3) {
+    // Lógica para el mensaje de envío gratuito: SOLO cuando haya EXACTAMENTE 3 artículos
+    if (totalQuantityInCart === 3) { // CAMBIADO a === 3
         shippingMessageDiv.innerHTML = '<p class="free-shipping-message">¡Envío gratuito a nivel nacional!</p>';
     } else {
         shippingMessageDiv.innerHTML = ''; // Limpiar el mensaje si no se cumple la condición
@@ -404,13 +404,13 @@ navButtons.forEach(button => {
         // Remover clase 'active' de todos los botones para reestablecer
         navButtons.forEach(btn => btn.classList.remove('active-category'));
         subcategoryButtons.forEach(btn => btn.classList.remove('active-subcategory'));
-
+        
         button.classList.add('active-category'); // Marcar el botón activo
 
         if (category === 'Carrito') {
             renderCart();
             cartSection.classList.remove('hidden');
-        } else if (category === 'all') { // CORREGIDO: Añadido 'else if'
+        } else if (category === 'all') { // Cuando se hace clic en "Inicio"
             displayProductsForHomepage();
             aboutUsSection.classList.remove('hidden'); // Mostrar "Quiénes somos"
         } else if (category === 'Ropa') {
