@@ -1,69 +1,62 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo Urbanlife</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catálogo Urbanlife Personaliza</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <header class="header">
-        <h1>Catálogo Urbanlife</h1>
-        <nav class="categories-nav">
+    <header class="main-header">
+        <h1>Catálogo Urbanlife Personaliza</h1>
+        <nav class="main-nav">
             <button class="nav-button" data-category="all">Todos</button>
             <button class="nav-button" data-category="Ropa">Ropa</button>
             <button class="nav-button" data-category="Cuadros">Cuadros</button>
             <button class="nav-button" data-category="Diseños">Diseños</button>
-            <button class="nav-button" data-category="Personalizados">Personalizados</button>
-            <button class="nav-button" data-category="Carrito">
-                Carrito (<span id="cart-count">0</span>)
-            </button>
+            <button class="nav-button" data-category="Personalizadas">Personalizados</button>
+            <button class="nav-button" data-category="Carrito">Carrito (<span id="cart-count">0</span>)</button>
         </nav>
     </header>
 
-    <main class="main-content">
-        <section id="product-list" class="product-grid">
-            <div class="loading-message">Cargando productos...</div>
+    <section id="product-list" class="catalog-section">
+        <p class="loading-message">Cargando productos...</p>
         </section>
 
-        <section id="product-detail" class="product-detail-section hidden">
-            <button id="back-to-catalog" class="back-button">← Volver al catálogo</button>
-            <div class="detail-content">
-                <img id="detail-image" src="" alt="Imagen del producto" class="detail-image">
-                <div class="detail-info">
-                    <h2 id="detail-name"></h2>
-                    <p class="product-id">ID: <span id="detail-id"></span></p>
-                    <p id="detail-description"></p>
-                    <p class="price">Precio: $<span id="detail-price"></span></p>
-                    <div id="detail-options" class="detail-options">
-                        </div>
-                    <div class="detail-actions">
-                        <button id="add-to-cart-button" class="buy-button">Añadir al Carrito</button>
-                        <button id="buy-now-button" class="whatsapp-button">Comprar Ya!</button>
-                        <button id="consultant-button" class="whatsapp-button consultant">Hablar con un consultor</button>
+    <section id="product-detail" class="hidden catalog-section">
+        <button id="back-to-catalog" class="back-button">← Volver al Catálogo</button>
+        <div class="product-detail-card">
+            <img id="detail-image" src="https://via.placeholder.com/400?text=Imagen+Cargando..." alt="Imagen del producto" />
+            <div class="detail-info">
+                <h2 id="detail-name">Nombre del Producto</h2>
+                <p class="product-id">ID: <span id="detail-id"></span></p>
+                <p id="detail-description">Descripción del producto.</p>
+                <p class="price">$<span id="detail-price">0</span></p>
+
+                <div id="detail-options" class="product-options">
                     </div>
+
+                <div class="product-actions">
+                    <button id="add-to-cart-button" class="action-button primary">Añadir al Carrito</button>
+                    <button id="buy-now-button" class="action-button secondary">Comprar Ahora (WhatsApp)</button>
+                    <button id="consultant-button" class="action-button secondary">Hablar con un Consultor</button>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section id="cart-section" class="cart-section hidden">
-            <button id="back-to-products-from-cart" class="back-button">← Volver a productos</button>
-            <h2>Carrito de Compras</h2>
-            <div id="cart-items" class="cart-items">
-                <p class="empty-cart-message">Tu carrito está vacío.</p>
+    <section id="cart-section" class="hidden catalog-section">
+        <button id="back-to-products-from-cart" class="back-button">← Volver a Productos</button>
+        <h2>Mi Carrito</h2>
+        <div id="cart-items" class="cart-items-container">
+            <p class="empty-cart-message">Tu carrito está vacío.</p>
             </div>
-            <div class="cart-summary">
-                <p>Total a Pagar: $<span id="cart-total">0</span></p>
-                <button id="checkout-button" class="buy-button">Pagar Ahora!</button>
-                <button id="consultant-cart-button" class="whatsapp-button consultant">Hablar con un consultor</button>
-                <p class="whatsapp-info">Al darle pagar YA!! se genera el pedido y se remite al WhatsApp</p>
-                <p class="whatsapp-info">Al hablar con un consultor igual lo remites al WhatsApp</p>
-            </div>
-        </section>
-    </main>
+        <div class="cart-summary">
+            <p>Total: <span id="cart-total">$0</span></p>
+            <button id="checkout-button" class="action-button primary">Finalizar Compra (WhatsApp)</button>
+            <button id="consultant-cart-button" class="action-button secondary">Hablar con un Consultor</button>
+        </div>
+    </section>
 
     <script src="script.js"></script>
 </body>
