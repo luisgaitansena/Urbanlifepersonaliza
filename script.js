@@ -1,8 +1,7 @@
 // --- CONFIGURACIÓN ---
-// ID de tu Google Sheet (Asegúrate de que solo sea el ID alfanumérico)
-const GOOGLE_SHEET_ID = '1bh8zFAQxE7B7mLhmzkGblp3udws4u2xW76_4U32zCGk';
+// NO NECESITAMOS GOOGLE_SHEET_ID POR SEPARADO YA QUE USAMOS UN ENLACE CSV DIRECTO
 // Tu número de WhatsApp completo (ej. 573101234567 para Colombia)
-const WHATSAPP_PHONE_NUMBER = '573184920436'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
+const WHATSAPP_PHONE_NUMBER = 'TU_NUMERO_DE_TELEFONO_AQUI'; // ¡REEMPLAZA ESTE CON TU NÚMERO DE TELÉFONO COMPLETO!
 // ---------------------
 
 // Referencias a elementos del DOM
@@ -30,29 +29,27 @@ let cart = {}; // Almacena los productos en el carrito { product_id: { product_d
 
 // --- Funciones de Utilidad ---
 
-// Función para limpiar y parsear el CSV
+// Función para limpiar y parsear el CSV (Versión más robusta)
 const parseCSV = (csvText) => {
     const lines = csvText.split('\n');
-    const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
+    // Eliminar líneas vacías al final que puedan causar problemas
+    const nonEmptyLines = lines.filter(line => line.trim() !== '');
+
+    if (nonEmptyLines.length === 0) return [];
+
+    const headers = nonEmptyLines[0].split(',').map(header => header.trim().toLowerCase());
     const products = [];
 
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue; // Saltar líneas vacías
-
-        // Manejo robusto de comas dentro de campos (ej. en descripciones)
+    for (let i = 1; i < nonEmptyLines.length; i++) {
+        const line = nonEmptyLines[i];
         const values = [];
         let inQuote = false;
         let currentField = '';
+
         for (let j = 0; j < line.length; j++) {
             const char = line[j];
-            if (char === '"' && (j === 0 || line[j - 1] === ',' || line[j - 1] === ' ')) { // Start/end of a quoted field
+            if (char === '"') {
                 inQuote = !inQuote;
-                if (!inQuote && line[j + 1] === ',') { // End of quoted field followed by comma
-                    values.push(currentField.trim());
-                    currentField = '';
-                    j++; // Skip the comma
-                }
             } else if (char === ',' && !inQuote) {
                 values.push(currentField.trim());
                 currentField = '';
@@ -60,12 +57,12 @@ const parseCSV = (csvText) => {
                 currentField += char;
             }
         }
-        values.push(currentField.trim()); // Add the last field
+        values.push(currentField.trim()); // Añadir el último campo
 
-        // console.log(`Línea ${i + 1}: ${values.length} columnas ->`, values); // Depuración
+        // Depuración: console.log(`Línea ${i + 1}: ${values.length} columnas vs ${headers.length} esperadas ->`, values);
 
         if (values.length !== headers.length) {
-            console.warn(`Saltando línea ${i + 1} debido a un número inconsistente de columnas: "${line}"`);
+            console.warn(`Saltando línea ${i + 1} debido a un número inconsistente de columnas. Esperadas: ${headers.length}, Encontradas: ${values.length}. Contenido: "${line}"`);
             continue;
         }
 
@@ -90,7 +87,7 @@ const parseCSV = (csvText) => {
         if (product.product_id && product.name && product.price !== undefined && product.image_url) {
             products.push(product);
         } else {
-            console.warn(`Saltando producto incompleto en línea ${i + 1}:`, product);
+            console.warn(`Saltando producto incompleto en línea ${i + 1} (faltan ID, nombre, precio o URL de imagen):`, product);
         }
     }
     return products;
@@ -100,20 +97,20 @@ const parseCSV = (csvText) => {
 // Función para obtener productos de Google Sheet
 const fetchProducts = async () => {
     productListSection.innerHTML = '<p class="loading-message">Cargando productos...</p>'; // Mostrar mensaje de carga
-    // URL para obtener la hoja como CSV (hoja 1, ID 0)
-    const sheetURL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&gid=0`;
+    // URL DIRECTA para obtener la hoja como CSV
+    const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyGzk1QIOLgGgVHj2DNi8ofN_oqzQl7qa1_V4zYzW3oK0Q7kDhWw9GD0t_bFmDs5cjmG8YaWwPDCbM/pub?output=csv'; // ¡NUEVO ENLACE DIRECTO!
 
     try {
         const response = await fetch(sheetURL);
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status} - Verifique que la hoja de cálculo esté publicada en la web como CSV.`);
         }
         const csvText = await response.text();
         allProducts = parseCSV(csvText);
         displayProducts(allProducts); // Mostrar todos los productos inicialmente
     } catch (error) {
         console.error('Error al cargar los productos:', error);
-        productListSection.innerHTML = '<p class="error-message">Error al cargar los productos. Por favor, revisa la consola para más detalles o intenta recargar la página.</p>';
+        productListSection.innerHTML = '<p class="error-message">Error al cargar los productos. Por favor, asegúrate de que tu Google Sheet esté publicado en la web como CSV y que el ID sea correcto.</p><p class="error-details">Detalle: ' + error.message + '</p>';
     }
 };
 
@@ -121,7 +118,7 @@ const fetchProducts = async () => {
 const displayProducts = (productsToDisplay) => {
     productListSection.innerHTML = ''; // Limpiar productos existentes
     if (productsToDisplay.length === 0) {
-        productListSection.innerHTML = '<p class="no-products-message">No se encontraron productos en esta categoría.</p>';
+        productListSection.innerHTML = '<p class="no-products-message">No se encontraron productos en esta categoría o la hoja está vacía/incorrecta.</p>';
         return;
     }
 
