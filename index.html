@@ -1,368 +1,78 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo de Productos</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        header {
-            background-color: #333;
-            color: #fff;
-            padding: 1rem 0;
-            text-align: center;
-            position: relative; /* Para posicionar el contador del carrito */
-        }
-        header h1 {
-            margin: 0;
-            font-size: 1.8em;
-        }
-        nav {
-            background-color: #444;
-            padding: 0.5rem 0;
-            text-align: center;
-        }
-        .nav-button, .subcategory-button {
-            background-color: #555;
-            color: white;
-            padding: 10px 15px;
-            margin: 0 5px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease;
-        }
-        .nav-button:hover, .subcategory-button:hover {
-            background-color: #777;
-        }
-        .nav-button.active-category, .subcategory-button.active-subcategory {
-            background-color: #007bff; /* Color para el botón activo */
-        }
-        #subcategory-nav {
-            background-color: #666;
-            padding: 0.5rem 0;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-        /* Estilos para el contador del carrito */
-        .cart-icon {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: white;
-            font-size: 1.2em;
-            cursor: pointer;
-        }
-        #cart-count {
-            background-color: red;
-            border-radius: 50%;
-            padding: 2px 7px;
-            font-size: 0.8em;
-            vertical-align: super;
-        }
-
-        main {
-            padding: 20px;
-        }
-        section {
-            background-color: #fff;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .product-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        .product-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            background-color: #fff;
-        }
-        .product-card img {
-            max-width: 100%;
-            height: 200px;
-            object-fit: contain; /* Ajusta la imagen dentro del contenedor */
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .product-card h3 {
-            font-size: 1.2em;
-            margin: 10px 0;
-        }
-        .product-price {
-            font-size: 1.1em;
-            color: #007bff;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .view-detail-button {
-            background-color: #28a745;
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .view-detail-button:hover {
-            background-color: #218838;
-        }
-
-        /* Product Detail */
-        #product-detail {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #product-detail img {
-            max-width: 80%;
-            height: auto;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        #detail-info {
-            text-align: center;
-            max-width: 600px;
-        }
-        #detail-info h2 {
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
-        #detail-info .product-id-text, #detail-info p {
-            color: #555;
-            margin-bottom: 10px;
-        }
-        #detail-info .price {
-            font-size: 1.5em;
-            color: #007bff;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        #detail-options label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        #detail-options select {
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            margin-bottom: 15px;
-            width: 100%;
-            max-width: 200px; /* Ancho máximo para selectores */
-        }
-        .detail-buttons button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.1em;
-            margin: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .detail-buttons button:hover {
-            background-color: #0056b3;
-        }
-        .back-button {
-            background-color: #6c757d;
-        }
-        .back-button:hover {
-            background-color: #5a6268;
-        }
-        .out-of-stock-message {
-            color: red;
-            font-weight: bold;
-            margin-top: 15px;
-        }
-
-        /* Cart Section */
-        #cart-section h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        #shipping-message {
-            text-align: center;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        .free-shipping-message {
-            color: #28a745;
-        }
-        #cart-items {
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
-        .empty-cart-message {
-            text-align: center;
-            color: #888;
-            margin-top: 20px;
-        }
-        .cart-item {
-            display: flex;
-            align-items: center;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #f9f9f9;
-        }
-        .cart-item img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 15px;
-        }
-        .cart-item-info {
-            flex-grow: 1;
-        }
-        .cart-item-info h3 {
-            margin: 0 0 5px 0;
-            font-size: 1.1em;
-        }
-        .cart-item-info p {
-            margin: 2px 0;
-            font-size: 0.9em;
-            color: #555;
-        }
-        .cart-item-info .price {
-            font-weight: bold;
-            color: #007bff;
-        }
-        .remove-from-cart {
-            background-color: #dc3545;
-            color: white;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.3s ease;
-        }
-        .remove-from-cart:hover {
-            background-color: #c82333;
-        }
-        .cart-summary {
-            text-align: right;
-            margin-top: 20px;
-            font-size: 1.3em;
-            font-weight: bold;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-        .cart-actions {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .cart-actions button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.1em;
-            margin: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .cart-actions button:hover {
-            background-color: #0056b3;
-        }
-
-        .hidden {
-            display: none;
-        }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catálogo Urbanlife Personaliza</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <header>
-        <h1>Mi Tienda Online</h1>
-        <div class="cart-icon nav-button" data-category="Carrito">
-            🛒 Carrito (<span id="cart-count">0</span>)
-        </div>
+    <header class="main-header">
+        <h1>Catálogo Urbanlife Personaliza</h1>
+        <nav class="main-nav">
+            <button class="nav-button" data-category="all">Inicio</button>
+            <button class="nav-button" data-category="Ropa">Ropa</button>
+            <button class="nav-button" data-category="Cuadros">Cuadros</button>
+            <button class="nav-button" data-category="Diseños">Diseños</button>
+            <button class="nav-button" data-category="Personalizadas">Personalizados</button>
+            <button class="nav-button" data-category="Carrito">Carrito (<span id="cart-count">0</span>)</button>
+        </nav>
+        <nav id="subcategory-nav" class="subcategory-nav hidden">
+            <button class="nav-button subcategory-button" data-category="Ropa" data-subcategory="all">Todas las Ropa</button>
+            <button class="nav-button subcategory-button" data-category="Ropa" data-subcategory="camiseta diomedes diaz">Camiseta Diomedes Diaz</button>
+            <button class="nav-button subcategory-button" data-category="Ropa" data-subcategory="camiseta martin elias">Camiseta Martin Elias</button>
+            <button class="nav-button subcategory-button" data-category="Ropa" data-subcategory="camiseta personalizada">Camiseta Personalizada</button>
+            <button class="nav-button subcategory-button" data-category="Ropa" data-subcategory="camiseta unicolor">Camiseta Unicolor</button>
+        </nav>
     </header>
 
-    <nav>
-        <button class="nav-button active-category" data-category="all">Inicio</button>
-        <button class="nav-button" data-category="Ropa">Ropa</button>
-        <button class="nav-button" data-category="Electrónica">Electrónica</button>
-        <button class="nav-button" data-category="Hogar">Hogar</button>
-        </nav>
+    <section id="about-us-section" class="catalog-section">
+        <h2>Sobre Nosotros</h2>
+        <p>
+            En **Urbanlife Personaliza**, transformamos tus ideas en productos únicos. Nos especializamos en la personalización de ropa, cuadros, y diseños exclusivos, brindándote la oportunidad de expresar tu estilo de una forma original y creativa. Con sede en Cúcuta, Colombia, nuestro compromiso es ofrecerte calidad, diseño innovador y un servicio al cliente excepcional. ¡Haz realidad tus creaciones con nosotros!
+        </p>
+    </section>
 
-    <nav id="subcategory-nav" class="hidden">
-        <button class="subcategory-button" data-category="Ropa" data-subcategory="all">Todas las Ropa</button>
-        <button class="subcategory-button" data-category="Ropa" data-subcategory="camisetas">Camisetas</button>
-        <button class="subcategory-button" data-category="Ropa" data-subcategory="pantalones">Pantalones</button>
-        <button class="subcategory-button" data-category="Ropa" data-subcategory="zapatos">Zapatos</button>
-        </nav>
+    <section id="product-list" class="catalog-section">
+        <p class="loading-message">Cargando productos...</p>
+    </section>
 
-    <main>
-        <section id="about-us-section">
-            <h2>Quiénes somos</h2>
-            <p>
-                Bienvenidos a nuestra tienda online. Nos dedicamos a ofrecerte productos de alta calidad 
-                con el mejor servicio al cliente. Explora nuestro catálogo y encuentra lo que necesitas.
-            </p>
-            <p>
-                Estamos aquí para ayudarte a encontrar el producto perfecto. ¡Esperamos que disfrutes tu compra!
-            </p>
-        </section>
+    <section id="product-detail" class="hidden catalog-section">
+        <button id="back-to-catalog" class="back-button">← Volver al Catálogo</button>
+        <div class="product-detail-card">
+            <img id="detail-image" src="https://via.placeholder.com/400?text=Imagen+Cargando..." alt="Imagen del producto" />
+            <div class="detail-info">
+                <h2 id="detail-name">Nombre del Producto</h2>
+                <p class="product-id">ID: <span id="detail-id"></span></p>
+                <p id="detail-description">Descripción del producto.</p>
+                <p class="price">$<span id="detail-price">0</span></p>
 
-        <section id="product-list">
-            </section>
+                <p class="shipping-info">¡Importante! Los productos no incluyen envío. Este se calculará al finalizar la compra.</p>
 
-        <section id="product-detail" class="hidden">
-            <img id="detail-image" src="" alt="Imagen del producto">
-            <div id="detail-info">
-                <h2 id="detail-name"></h2>
-                <p class="product-id-text">ID: <span id="detail-id"></span></p>
-                <p id="detail-description"></p>
-                <p class="price">$<span id="detail-price"></span></p>
-                <div id="detail-options">
+                <div id="detail-options" class="product-options">
                     </div>
-                <div class="detail-buttons">
-                    <button id="add-to-cart-button">Añadir al Carrito</button>
-                    <button id="buy-now-button">Comprar Ahora (WhatsApp)</button>
-                    <button id="consultant-button" class="back-button">Hablar con Asesor</button>
-                    <button id="back-to-catalog" class="back-button">Volver al Catálogo</button>
-                </div>
-            </div>
-        </section>
 
-        <section id="cart-section" class="hidden">
-            <h2>Tu Carrito (<span id="cart-count">0</span> artículos)</h2>
-            <div id="shipping-message">
+                <div class="product-actions">
+                    <button id="add-to-cart-button" class="action-button primary">Añadir al Carrito</button>
+                    <button id="buy-now-button" class="action-button secondary">Comprar Ahora (WhatsApp)</button>
+                    <button id="consultant-button" class="action-button secondary">Hablar con un Consultor</button>
                 </div>
-            <div id="cart-items">
-                <p class="empty-cart-message">Tu carrito está vacío.</p>
-                </div>
-            <div class="cart-summary">
-                Total: $<span id="cart-total">0</span>
             </div>
-            <div class="cart-actions">
-                <button id="back-to-products-from-cart" class="back-button">Seguir Comprando</button>
-                <button id="checkout-button">Finalizar Compra (WhatsApp)</button>
-                <button id="consultant-cart-button" class="back-button">Consultar Carrito</button>
-            </div>
-        </section>
-    </main>
+        </div>
+    </section>
+
+    <section id="cart-section" class="hidden catalog-section">
+        <button id="back-to-products-from-cart" class="back-button">← Volver a Productos</button>
+        <h2>Mi Carrito</h2>
+        <div id="cart-items" class="cart-items-container">
+            <p class="empty-cart-message">Tu carrito está vacío.</p>
+        </div>
+        <div class="cart-summary">
+            <p>Total: <span id="cart-total">$0</span></p>
+            <button id="checkout-button" class="action-button primary">Finalizar Compra (WhatsApp)</button>
+            <button id="consultant-cart-button" class="action-button secondary">Hablar con un Consultor</button>
+        </div>
+    </section>
 
     <script src="script.js"></script>
 </body>
