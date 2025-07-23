@@ -14,6 +14,7 @@ const cartCountSpan = document.getElementById('cart-count');
 const cartTotalSpan = document.getElementById('cart-total');
 const cartItemsContainer = document.getElementById('cart-items');
 const emptyCartMessage = cartItemsContainer.querySelector('.empty-cart-message');
+const shippingMessageDiv = document.getElementById('shipping-message'); // NUEVO: Referencia al div del mensaje de envío
 
 // Botones de navegación principal y de subcategorías
 const navButtons = document.querySelectorAll('.nav-button:not(.subcategory-button)');
@@ -286,6 +287,7 @@ const addToCart = () => {
 const renderCart = () => {
     cartItemsContainer.innerHTML = '';
     let total = 0;
+    let totalQuantityInCart = 0; // NUEVO: Para contar la cantidad total de artículos
 
     const cartItemsArray = Object.values(cart);
 
@@ -310,9 +312,17 @@ const renderCart = () => {
             `;
             cartItemsContainer.appendChild(itemDiv);
             total += item.price * item.quantity;
+            totalQuantityInCart += item.quantity; // NUEVO: Sumar la cantidad
         });
     }
     cartTotalSpan.textContent = total.toLocaleString('es-CO');
+
+    // NUEVO: Lógica para el mensaje de envío gratuito
+    if (totalQuantityInCart >= 3) {
+        shippingMessageDiv.innerHTML = '<p class="free-shipping-message">¡Envío gratuito a nivel nacional!</p>';
+    } else {
+        shippingMessageDiv.innerHTML = ''; // Limpiar el mensaje si no se cumple la condición
+    }
 };
 
 const removeFromCart = (cartItemId) => {
