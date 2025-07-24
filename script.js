@@ -328,7 +328,7 @@ const renderCart = () => {
     // Verifica si shippingMessageDiv existe antes de manipularlo
     if (shippingMessageDiv) {
         if (totalQuantityInCart === 3) { // CAMBIADO a === 3
-            shippingMessageDiv.innerHTML = '<p class="free-shipping-message">ESTE PEDIDO TIENE¡Envío gratuito a nivel nacional!</p>';
+            shippingMessageDiv.innerHTML = '<p class="free-shipping-message"> ESTE PEDIDO TIENE¡Envío gratuito a nivel nacional!</p>';
         } else {
             shippingMessageDiv.innerHTML = ''; // Limpiar el mensaje si no se cumple la condición
         }
